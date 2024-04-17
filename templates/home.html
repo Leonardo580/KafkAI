@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tech Support Chat</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @media (min-width: 768px) {
+            .sidebar {
+                width: 250px; /* Fixed sidebar width */
+            }
+        }
+
+        .gradient-bg {
+            background: linear-gradient(to right, #4b5563, #1f2937);
+            opacity: 0.9;
+        }
+
+        .relative:hover .submenu {
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-gray-800 text-white font-sans">
+<header class="bg-gray-900 text-white p-4 flex justify-between items-center">
+    <h1 class="text-lg">KafkAI</h1>
+    <div class="rounded-full bg-gray-700 p-2 flex items-center justify-center">
+        <img src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="User Icon" class="h-6 w-6">
+        <label class="ml-2">{{ user.username }}</label>
+        <div class="absolute top-full right-0 mt-2 w-48 bg-gray-700 rounded-lg shadow-lg hidden submenu">
+            <a href="#" class="block px-4 py-2 hover:bg-gray-600 rounded-t-lg">Profile</a>
+            <a href="#" class="block px-4 py-2 hover:bg-gray-600">Settings</a>
+            <a href="#" class="block px-4 py-2 hover:bg-gray-600 rounded-b-lg">Logout</a>
+        </div>
+    </div>
+</header>
+<div class="flex flex-col md:flex-row">
+    <aside class="sidebar bg-gray-700 p-4 text-gray-200">
+        <nav class="space-y-2">
+            <a href="#home" class="block py-2 px-4 rounded hover:bg-gray-600">Home</a>
+            <a href="#faq" class="block py-2 px-4 rounded hover:bg-gray-600">FAQ</a>
+            <a href="#contact-us" class="block py-2 px-4 rounded hover:bg-gray-600">Contact Us</a>
+            <a href="#settings" class="block py-2 px-4 rounded hover:bg-gray-600">Settings</a>
+        </nav>
+    </aside>
+    <main class="flex-1">
+        <section class="p-4">
+            <div class="bg-gray-900 p-4 rounded-lg overflow-auto h-96 gradient-bg">
+                <!-- Chat messages will appear here -->
+                <p class="text-gray-300">Welcome to Tech Support. How can we assist you today?</p>
+                <!-- More chat messages -->
+            </div>
+            <div class="mt-4">
+                <input type="text" class="w-full p-2 rounded bg-gray-800 border border-gray-600"
+                       placeholder="Type your message here...">
+                <button class="mt-2 w-full bg-blue-500 py-2 text-white rounded hover:bg-blue-400">Send</button>
+            </div>
+        </section>
+    </main>
+</div>
+<footer class="bg-gray-900 text-center p-4 text-gray-400">
+    <p>Copyright 2023 Tech Support Chat. All rights reserved.</p>
+</footer>
+</body>
+</html>
