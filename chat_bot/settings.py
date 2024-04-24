@@ -44,6 +44,8 @@ INSTALLED_APPS = [
     'allauth.account',
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
+    'channels',
+    "chat.apps.ChatConfig"
     # 'compressor',
     # 'django_email_verification',
 
@@ -67,6 +69,8 @@ AUTHENTICATION_BACKENDS = [
     # `allauth` specific authentication methods, such as login by e-mail
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
+
+ASGI_APPLICATION = "myproject.asgi.application"
 SITE_ID = 1
 
 LOGIN_REDIRECT_URL = 'home'
@@ -178,10 +182,6 @@ STATICFILES_DIRS = [
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 COMPRESS_ROOT = BASE_DIR / 'static'
-
-
-
-
 
 ###############################################
 
