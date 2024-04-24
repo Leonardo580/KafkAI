@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.contrib.auth.views import LoginView, LogoutView, PasswordResetView
+from django.contrib.auth.views import LoginView, LogoutView, PasswordResetView, PasswordResetConfirmView
 from django.contrib.messages.views import SuccessMessageMixin
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
@@ -13,7 +13,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.views.generic.edit import CreateView
 
-from .forms import EditUserForm, EditProfileForm
+from .forms import EditUserForm, EditProfileForm, CustomPasswordResetForm, CustomSetPasswordForm
 from .forms import SignInForm, SignUpForm
 from .models import Profile
 
@@ -43,10 +43,19 @@ class CustomLogoutView(LogoutView):
 
 
 class ResetPasswordView(SuccessMessageMixin, PasswordResetView):
-    template_name = 'users/check_email.html'
+    template_name = 'users/password_reset.html'
     success_url = reverse_lazy('login')
     email_template_name = 'users/password_body.html'
-    subject_template_name = 'users/password_subject'
+    subject_template_name = 'users/password_body.txt'
+    form_class = CustomPasswordResetForm
+
+
+
+class CustomPasswordResetConfirmView(PasswordResetConfirmView):
+    success_url = reverse_lazy('password_reset_complete')
+    form_class = CustomSetPasswordForm
+
+
 
 
 # def forgot_password(request):

@@ -1,9 +1,11 @@
+from django import forms
 from django.contrib.auth.forms import AuthenticationForm
-
+from django.contrib.auth.forms import PasswordResetForm
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django import forms
-
+from django.contrib.auth.forms import SetPasswordForm
+from django.utils.translation import gettext_lazy as _
 from users.models import Profile
 
 
@@ -80,3 +82,61 @@ class EditProfileForm(forms.ModelForm):
                 'class': 'relative z-20 w-full appearance-none rounded border border-stroke px-5 py-3 outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary'
             }),
         }
+
+
+class CustomPasswordResetForm(PasswordResetForm):
+    email = forms.EmailField(
+        label=_("Email"),
+        max_length=254,
+        widget=forms.EmailInput(
+            attrs={
+                "class": "formInput",
+                "placeholder": _("Enter your email address"),
+                "data-error": _("Please enter a valid email address"),
+                "required": True,
+            }
+        ),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["email"].widget.attrs.update({
+            'class': 'w-full rounded border-[1.5px] border-stroke px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary'})
+
+
+
+
+
+class CustomSetPasswordForm(SetPasswordForm):
+    new_password1 = forms.CharField(
+        label=_("New password"),
+        widget=forms.PasswordInput(
+            attrs={
+                "class": "formInput",
+                "placeholder": _("Enter new password"),
+                "data-error": _("Please enter a new password"),
+                "required": True,
+            }
+        ),
+        strip=False,
+    )
+
+    new_password2 = forms.CharField(
+        label=_("Confirm new password"),
+        widget=forms.PasswordInput(
+            attrs={
+                "class": "formInput",
+                "placeholder": _("Confirm new password"),
+                "data-error": _("Please confirm your new password"),
+                "required": True,
+            }
+        ),
+        strip=False,
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["new_password1"].widget.attrs.update({
+            'class': 'w-full rounded border-[1.5px] border-stroke px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary'})
+        self.fields["new_password2"].widget.attrs.update({
+            'class': 'w-full rounded border-[1.5px] border-stroke px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary'})

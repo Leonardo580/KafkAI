@@ -1,34 +1,31 @@
-document.addEventListener('DOMContentLoaded', function() {
-            const deleteAccountBtn = document.getElementById('deleteAccountBtn');
-            const confirmDeleteModal = document.getElementById('popup-modal');
-            const confirmDelete = document.getElementById('confirmDelete');
-            const cancelDelete = document.getElementById('cancelDelete');
+const deleteAccountUrl = '{% url "delete" %}';
 
-            deleteAccountBtn.addEventListener('click', () => {
-          const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-          console.log(deleteAccountUrl);
-          fetch(deleteAccountUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-CSRFToken': csrfToken
-            },
-            body: JSON.stringify({userId: currentUserId})
-          })
-              .then(response => {
-                if (response.ok) {
-                  // Account deleted successfully
-                  console.log('Account deleted');
-                  // Perform any additional actions, such as redirecting to a logout page
-                  window.location.href = '/logout/';
-                } else {
-                  // Handle account deletion error
-                  console.error('Failed to delete account');
-                }
-              })
-              .catch(error => {
-                console.error('Error deleting account:', error);
-              });
-
-      });
+function deleteAccount() {
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    fetch(deleteAccountUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({userId: '{{ request.user.id }}'})
+    })
+    .then(response => {
+        if (response.ok) {
+            console.log('Account deleted');
+            window.location.href = '/logout/';
+        } else {
+            console.error('Failed to delete account');
+        }
+    })
+    .catch(error => {
+        console.error('Error deleting account:', error);
     });
+}
+
+document.addEventListener('alpine:init', () => {
+    Alpine.data('modal', () => ({
+        showModal: false,
+        deleteAccount
+    }));
+});
