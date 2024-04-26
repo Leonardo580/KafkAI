@@ -9,9 +9,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.js"></script>
     <script src="{% static 'js/home.js' %}"></script>
-    {% compress css %}
+    {% comment %}{% compress css %}
     <link rel="stylesheet" href="{% static 'src/output.css' %}">
-    {% endcompress %}
+    {% endcompress %}{% endcomment %}
     <style>
         .sidebar {
             width: 250px; /* Fixed sidebar width */

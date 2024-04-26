@@ -1,22 +1,23 @@
 from django.contrib.auth.models import User
 from django.contrib.auth.models import User
+from django.contrib.auth.models import User
 from django.db import models
 
 
-class Conversation(models.Model):
-    title = models.CharField(max_length=100, unique=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+class Chat(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chats')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.user}:{self.title}"
+        return f"Chat #{self.id} (User: {self.user.username})"
 
 
-class ChatMessage(models.Model):
-    id = models.AutoField(primary_key=True)
-    conversation = models.ForeignKey(Conversation, default=None, on_delete=models.CASCADE)
-    user_response = models.TextField(null=True, default='')
-    ai_response = models.TextField(null=True, default='')
-    timestamp = models.DateTimeField(auto_now_add=True)
+class Message(models.Model):
+    chat = models.ForeignKey(Chat, on_delete=models.CASCADE, related_name='messages')
+    sender = models.CharField(max_length=10, choices=[('user', 'User'), ('llm', 'LLM')])
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.conversation}: {self.id}"
+        return f"Message #{self.id} (Chat: {self.chat.id}, Sender: {self.sender})"
