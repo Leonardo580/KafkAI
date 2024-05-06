@@ -53,30 +53,45 @@
             <nav class="mt-5 px-4 py-4 lg:mt-9 lg:px-6" x-data="{selected: $persist('Dashboard')}">
                 <!-- Menu Group -->
                 <div>
-                    <h3 class="mb-4 ml-4 text-sm font-medium text-bodydark2">
-                        Chat History
-                    </h3>
-                    <ul class="mb-6 flex flex-col gap-1.5">
-                        <!-- Existing menu items -->
+    <h3 class="mb-4 ml-4 text-sm font-medium text-bodydark2">
+        Chat History
+    </h3>
+    <ul class="mb-6 flex flex-col gap-1.5 chat-history-list">
+        <!-- Existing menu items -->
 
-                        <!-- New Chat Button -->
-                        <li>
-                            <a href="#" @click.prevent="createNewChat()"
-                               class="group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4">
-                                <svg class="fill-current" fill="none" height="18" viewBox="0 0 18 18" width="18"
-                                     xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M9 4.5C9.82843 4.5 10.5 3.82843 10.5 3C10.5 2.17157 9.82843 1.5 9 1.5C8.17157 1.5 7.5 2.17157 7.5 3C7.5 3.82843 8.17157 4.5 9 4.5Z"
-                                          fill=""/>
-                                    <path d="M13.5 9C13.5 12.5899 10.5899 15.5 7 15.5C3.41015 15.5 0.5 12.5899 0.5 9C0.5 5.41015 3.41015 2.5 7 2.5C10.5899 2.5 13.5 5.41015 13.5 9Z"
-                                          fill=""/>
-                                    <path d="M17.5 17.5L13.5 13.5" stroke="" stroke-linecap="round"
-                                          stroke-linejoin="round"/>
-                                </svg>
-                                New Chat
-                            </a>
-                        </li>
-                    </ul>
-                </div>
+        <!-- New Chat Button -->
+        <li>
+            <a href="#" @click.prevent="createNewChat()"
+               class="group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4">
+                <svg class="fill-current" fill="none" height="18" viewBox="0 0 18 18" width="18"
+                     xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9 4.5C9.82843 4.5 10.5 3.82843 10.5 3C10.5 2.17157 9.82843 1.5 9 1.5C8.17157 1.5 7.5 2.17157 7.5 3C7.5 3.82843 8.17157 4.5 9 4.5Z"
+                          fill=""/>
+                    <path d="M13.5 9C13.5 12.5899 10.5899 15.5 7 15.5C3.41015 15.5 0.5 12.5899 0.5 9C0.5 5.41015 3.41015 2.5 7 2.5C10.5899 2.5 13.5 5.41015 13.5 9Z"
+                          fill=""/>
+                    <path d="M17.5 17.5L13.5 13.5" stroke="" stroke-linecap="round"
+                          stroke-linejoin="round"/>
+                </svg>
+                New Chat
+            </a>
+        </li>
+        {% for chat in chats  %}
+            <li><a href="#" @click.prevent="chat_messages({{chat.id }})"
+               class="group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4">
+                <svg class="fill-current" fill="none" height="18" viewBox="0 0 18 18" width="18"
+                     xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9 4.5C9.82843 4.5 10.5 3.82843 10.5 3C10.5 2.17157 9.82843 1.5 9 1.5C8.17157 1.5 7.5 2.17157 7.5 3C7.5 3.82843 8.17157 4.5 9 4.5Z"
+                          fill=""/>
+                    <path d="M13.5 9C13.5 12.5899 10.5899 15.5 7 15.5C3.41015 15.5 0.5 12.5899 0.5 9C0.5 5.41015 3.41015 2.5 7 2.5C10.5899 2.5 13.5 5.41015 13.5 9Z"
+                          fill=""/>
+                    <path d="M17.5 17.5L13.5 13.5" stroke="" stroke-linecap="round"
+                          stroke-linejoin="round"/>
+                </svg>
+                chat_#{{ chat.id }}
+            </a></li>
+        {% endfor %}
+    </ul>
+</div>
                 <!-- ... -->
             </nav>
             <!-- Sidebar Menu -->

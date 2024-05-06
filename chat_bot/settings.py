@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.google',
     'channels',
     "chat.apps.ChatConfig",
+    # 'rest_framework',
 
     # 'compressor',
     # 'django_email_verification',
@@ -183,6 +184,7 @@ STATIC_URL = '/static/'
 # STATIC_ROOT = BASE_DIR / "media"
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static/'),
+    os.path.join(BASE_DIR, 'static/media/'),
 ]
 
 # Default primary key field type

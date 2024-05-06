@@ -50,12 +50,9 @@ class ResetPasswordView(SuccessMessageMixin, PasswordResetView):
     form_class = CustomPasswordResetForm
 
 
-
 class CustomPasswordResetConfirmView(PasswordResetConfirmView):
     success_url = reverse_lazy('password_reset_complete')
     form_class = CustomSetPasswordForm
-
-
 
 
 # def forgot_password(request):
@@ -70,7 +67,9 @@ class CustomPasswordResetConfirmView(PasswordResetConfirmView):
 
 @login_required
 def home(request):
-    return render(request, 'header.html', {'user': request.user, "profile": Profile.objects.get(user=request.user)})
+    chats = request.user.chats.all().order_by('-created_at')[:10]
+    return render(request, 'header.html',
+                  {'user': request.user, "profile": Profile.objects.get(user=request.user), "chats": chats})
 
 
 def signup_redirect(request):
