@@ -27,7 +27,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["192.168.1.29", "localhost", "192.168.101.38"]
 
 # Application definition
 
@@ -47,7 +47,10 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.google',
     'channels',
     "chat.apps.ChatConfig",
-    # 'rest_framework',
+    "bot_kb.apps.BotKbConfig"
+    'rest_framework',
+    "rest_framework_api_key",
+    # "rest_framework_simple_api_key",
 
     # 'compressor',
     # 'django_email_verification',

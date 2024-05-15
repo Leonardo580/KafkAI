@@ -53,45 +53,43 @@
             <nav class="mt-5 px-4 py-4 lg:mt-9 lg:px-6" x-data="{selected: $persist('Dashboard')}">
                 <!-- Menu Group -->
                 <div>
-    <h3 class="mb-4 ml-4 text-sm font-medium text-bodydark2">
-        Chat History
-    </h3>
-    <ul class="mb-6 flex flex-col gap-1.5 chat-history-list">
-        <!-- Existing menu items -->
+                    <h3 class="mb-4 ml-4 text-sm font-medium text-bodydark2">
+                        Chat History
+                    </h3>
+                    <ul class="mb-6 flex flex-col gap-1.5 chat-history-list">
+                        <!-- Existing menu items -->
 
-        <!-- New Chat Button -->
-        <li>
-            <a href="#" @click.prevent="createNewChat()"
-               class="group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4">
-                <svg class="fill-current" fill="none" height="18" viewBox="0 0 18 18" width="18"
-                     xmlns="http://www.w3.org/2000/svg">
-                    <path d="M9 4.5C9.82843 4.5 10.5 3.82843 10.5 3C10.5 2.17157 9.82843 1.5 9 1.5C8.17157 1.5 7.5 2.17157 7.5 3C7.5 3.82843 8.17157 4.5 9 4.5Z"
-                          fill=""/>
-                    <path d="M13.5 9C13.5 12.5899 10.5899 15.5 7 15.5C3.41015 15.5 0.5 12.5899 0.5 9C0.5 5.41015 3.41015 2.5 7 2.5C10.5899 2.5 13.5 5.41015 13.5 9Z"
-                          fill=""/>
-                    <path d="M17.5 17.5L13.5 13.5" stroke="" stroke-linecap="round"
-                          stroke-linejoin="round"/>
-                </svg>
-                New Chat
-            </a>
-        </li>
-        {% for chat in chats  %}
-            <li><a href="#" @click.prevent="chat_messages({{chat.id }})"
-               class="group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4">
-                <svg class="fill-current" fill="none" height="18" viewBox="0 0 18 18" width="18"
-                     xmlns="http://www.w3.org/2000/svg">
-                    <path d="M9 4.5C9.82843 4.5 10.5 3.82843 10.5 3C10.5 2.17157 9.82843 1.5 9 1.5C8.17157 1.5 7.5 2.17157 7.5 3C7.5 3.82843 8.17157 4.5 9 4.5Z"
-                          fill=""/>
-                    <path d="M13.5 9C13.5 12.5899 10.5899 15.5 7 15.5C3.41015 15.5 0.5 12.5899 0.5 9C0.5 5.41015 3.41015 2.5 7 2.5C10.5899 2.5 13.5 5.41015 13.5 9Z"
-                          fill=""/>
-                    <path d="M17.5 17.5L13.5 13.5" stroke="" stroke-linecap="round"
-                          stroke-linejoin="round"/>
-                </svg>
-                chat_#{{ chat.id }}
-            </a></li>
-        {% endfor %}
-    </ul>
-</div>
+                        <!-- New Chat Button -->
+                        <li>
+                            <a href="#" @click.prevent="createNewChat()"
+                               class="group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                     stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                          d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/>
+                                </svg>
+
+
+                                New Chat
+                            </a>
+                        </li>
+                        {% for chat in chats %}
+                            <li><a href="#" @click.prevent="chat_messages({{ chat.id }})"
+                                   class="group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4">
+                                <svg class="fill-current" fill="none" height="18" viewBox="0 0 18 18" width="18"
+                                     xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M9 4.5C9.82843 4.5 10.5 3.82843 10.5 3C10.5 2.17157 9.82843 1.5 9 1.5C8.17157 1.5 7.5 2.17157 7.5 3C7.5 3.82843 8.17157 4.5 9 4.5Z"
+                                          fill=""/>
+                                    <path d="M13.5 9C13.5 12.5899 10.5899 15.5 7 15.5C3.41015 15.5 0.5 12.5899 0.5 9C0.5 5.41015 3.41015 2.5 7 2.5C10.5899 2.5 13.5 5.41015 13.5 9Z"
+                                          fill=""/>
+                                    <path d="M17.5 17.5L13.5 13.5" stroke="" stroke-linecap="round"
+                                          stroke-linejoin="round"/>
+                                </svg>
+                                chat_#{{ chat.id }}
+                            </a></li>
+                        {% endfor %}
+                    </ul>
+                </div>
                 <!-- ... -->
             </nav>
             <!-- Sidebar Menu -->
@@ -264,19 +262,20 @@
                             </ul>
                             <form method="post" action="{% url 'logout' %}">
                                 {% csrf_token %}
-                            <button class="flex items-center gap-3.5 px-6 py-4 text-sm font-medium duration-300 ease-in-out hover:text-primary lg:text-base" type="submit">
-                                <svg class="fill-current" fill="none" height="22" viewbox="0 0 22 22" width="22"
-                                     xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M15.5375 0.618744H11.6531C10.7594 0.618744 10.0031 1.37499 10.0031 2.26874V4.64062C10.0031 5.05312 10.3469 5.39687 10.7594 5.39687C11.1719 5.39687 11.55 5.05312 11.55 4.64062V2.23437C11.55 2.16562 11.5844 2.13124 11.6531 2.13124H15.5375C16.3625 2.13124 17.0156 2.78437 17.0156 3.60937V18.3562C17.0156 19.1812 16.3625 19.8344 15.5375 19.8344H11.6531C11.5844 19.8344 11.55 19.8 11.55 19.7312V17.3594C11.55 16.9469 11.2062 16.6031 10.7594 16.6031C10.3125 16.6031 10.0031 16.9469 10.0031 17.3594V19.7312C10.0031 20.625 10.7594 21.3812 11.6531 21.3812H15.5375C17.2219 21.3812 18.5625 20.0062 18.5625 18.3562V3.64374C18.5625 1.95937 17.1875 0.618744 15.5375 0.618744Z"
-                                          fill="">
-                                    </path>
-                                    <path d="M6.05001 11.7563H12.2031C12.6156 11.7563 12.9594 11.4125 12.9594 11C12.9594 10.5875 12.6156 10.2438 12.2031 10.2438H6.08439L8.21564 8.07813C8.52501 7.76875 8.52501 7.2875 8.21564 6.97812C7.90626 6.66875 7.42501 6.66875 7.11564 6.97812L3.67814 10.4844C3.36876 10.7938 3.36876 11.275 3.67814 11.5844L7.11564 15.0906C7.25314 15.2281 7.45939 15.3312 7.66564 15.3312C7.87189 15.3312 8.04376 15.2625 8.21564 15.125C8.52501 14.8156 8.52501 14.3344 8.21564 14.025L6.05001 11.7563Z"
-                                          fill="">
-                                    </path>
-                                </svg>
-                                Log Out
-                            </button>
-                                </form>
+                                <button class="flex items-center gap-3.5 px-6 py-4 text-sm font-medium duration-300 ease-in-out hover:text-primary lg:text-base"
+                                        type="submit">
+                                    <svg class="fill-current" fill="none" height="22" viewbox="0 0 22 22" width="22"
+                                         xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M15.5375 0.618744H11.6531C10.7594 0.618744 10.0031 1.37499 10.0031 2.26874V4.64062C10.0031 5.05312 10.3469 5.39687 10.7594 5.39687C11.1719 5.39687 11.55 5.05312 11.55 4.64062V2.23437C11.55 2.16562 11.5844 2.13124 11.6531 2.13124H15.5375C16.3625 2.13124 17.0156 2.78437 17.0156 3.60937V18.3562C17.0156 19.1812 16.3625 19.8344 15.5375 19.8344H11.6531C11.5844 19.8344 11.55 19.8 11.55 19.7312V17.3594C11.55 16.9469 11.2062 16.6031 10.7594 16.6031C10.3125 16.6031 10.0031 16.9469 10.0031 17.3594V19.7312C10.0031 20.625 10.7594 21.3812 11.6531 21.3812H15.5375C17.2219 21.3812 18.5625 20.0062 18.5625 18.3562V3.64374C18.5625 1.95937 17.1875 0.618744 15.5375 0.618744Z"
+                                              fill="">
+                                        </path>
+                                        <path d="M6.05001 11.7563H12.2031C12.6156 11.7563 12.9594 11.4125 12.9594 11C12.9594 10.5875 12.6156 10.2438 12.2031 10.2438H6.08439L8.21564 8.07813C8.52501 7.76875 8.52501 7.2875 8.21564 6.97812C7.90626 6.66875 7.42501 6.66875 7.11564 6.97812L3.67814 10.4844C3.36876 10.7938 3.36876 11.275 3.67814 11.5844L7.11564 15.0906C7.25314 15.2281 7.45939 15.3312 7.66564 15.3312C7.87189 15.3312 8.04376 15.2625 8.21564 15.125C8.52501 14.8156 8.52501 14.3344 8.21564 14.025L6.05001 11.7563Z"
+                                              fill="">
+                                        </path>
+                                    </svg>
+                                    Log Out
+                                </button>
+                            </form>
                         </div>
                         <!-- Dropdown End -->
                     </div>
@@ -305,16 +304,16 @@
                     </div>
                 {% endblock %}
             </div>
-        
-        <!-- Prompt Messages Container -->
-    
+
+            <!-- Prompt Messages Container -->
+
 
         </main>
         <!-- ===== Main Content End ===== -->
         <!-- ===== Page Wrapper End ===== -->
         <script type="application/javascript">
             const chat_form_url = "{% url 'create_chat' %}";
-            const avatar_url= "{% static profile.avatar.url %}"
+            const avatar_url = "{% static profile.avatar.url %}"
             const bot_avatar_url = "{% static 'images/bot.jpeg' %}";
         </script>
         <script defer="" src="{% static 'bundle.js' %}">

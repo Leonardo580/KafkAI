@@ -18,13 +18,8 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include
-
+from . import views
 urlpatterns = [
-                  path('admin/', admin.site.urls),
-                  path('', include("users.urls")),
-                  path('', include('allauth.urls')),
-                  path('chat/', include('chat.urls')),
-                  path("api/", include("bot_kb.urls")),
-                  # path('verification/', include('verify_email.urls')),
+                  path('receive_kb/', views.ReceiveData.as_view(), name='receive_kb'),
 
-              ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+              ]

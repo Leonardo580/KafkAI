@@ -28,13 +28,14 @@ class ChatConsumer(WebsocketConsumer):
         if sender == 'user':
             chat = Chat.objects.get(id=self.chat_id)
             user_message = Message.objects.create(chat=chat, sender=sender, content=message)
-
+            llm_answer = "answer me"
+            llm_message = Message.objects.create(chat=chat, sender='llm', content=llm_answer)
             # Send the user's message to the chat group
             async_to_sync(self.channel_layer.group_send)(
                 self.chat_group_name,
                 {
                     'type': 'chat_message',
-                    'message': "answer me ",
+                    'message': llm_answer,
                     'sender': "llm",
                 }
             )

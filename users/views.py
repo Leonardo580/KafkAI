@@ -65,8 +65,10 @@ class CustomPasswordResetConfirmView(PasswordResetConfirmView):
 #     return redirect(reverse_lazy("login"))
 
 
+
 @login_required
 def home(request):
+
     chats = request.user.chats.all().order_by('-created_at')[:10]
     return render(request, 'header.html',
                   {'user': request.user, "profile": Profile.objects.get(user=request.user), "chats": chats})
