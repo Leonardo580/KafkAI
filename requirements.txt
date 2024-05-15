@@ -1,6 +1,6 @@
 channels-redis
 daphne
-
+weaviate-client
 django~=5.0.4
 django-viewflow~=2.0.2
 asgiref~=3.8.1

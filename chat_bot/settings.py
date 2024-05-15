@@ -47,7 +47,7 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.google',
     'channels',
     "chat.apps.ChatConfig",
-    "bot_kb.apps.BotKbConfig"
+    "knowledge_base.apps.BotKbConfig",
     'rest_framework',
     "rest_framework_api_key",
     # "rest_framework_simple_api_key",

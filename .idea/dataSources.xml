@@ -17,5 +17,15 @@
       <jdbc-url>jdbc:mysql://127.0.0.1:3306/chatbot_db</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
+    <data-source source="LOCAL" name="redminedb@192.168.101.33" uuid="4fbc64d1-10a8-4bbf-a7f6-1d562b7184eb">
+      <driver-ref>mysql.8</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>com.mysql.cj.jdbc.Driver</jdbc-driver>
+      <jdbc-url>jdbc:mysql://192.168.101.33:3306/redminedb</jdbc-url>
+      <working-dir>$ProjectFileDir$</working-dir>
+      <driver-properties>
+        <property name="useSSL" value="TRUE" />
+      </driver-properties>
+    </data-source>
   </component>
 </project>
