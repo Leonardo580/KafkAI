@@ -25,5 +25,6 @@ services:
       CLUSTER_HOSTNAME: 'node1'
 volumes:
   weaviate_data:
+    # TODO: add volume here
 #    /var/weaviate:C:/Users/anasb/Study/PFE/chat_bot/weaviate
 ...

@@ -70,7 +70,7 @@ MIDDLEWARE = [
 ]
 
 AUTHENTICATION_BACKENDS = [
-    # Needed to login by username in Django admin, regardless of `allauth`
+    # Needed to log in by username in Django admin, regardless of `allauth`
     'django.contrib.auth.backends.ModelBackend',
     # `allauth` specific authentication methods, such as login by e-mail
     'allauth.account.auth_backends.AuthenticationBackend',
@@ -83,11 +83,14 @@ CHANNEL_LAYERS = {
     }
 }
 
+WEAVIA_HOST = "localhost"
+WEAVIA_PORT = 8081
+COHERE_API_KEY= os.getenv('COHERE_API_KEY')
 SITE_ID = 1
 
 LOGIN_REDIRECT_URL = 'home'
 SOCIALACCOUNT_LOGIN_ON_GET = True
-
+# TODO: change  email
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
         'SCOPE': [

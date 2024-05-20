@@ -19,7 +19,9 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include
 from . import views
-urlpatterns = [
-                  path('receive_kb/', views.ReceiveData.as_view(), name='receive_kb'),
 
-              ]
+urlpatterns = [
+    # path('receive_kb/', views.ReceiveData.as_view(), name='receive_kb'),
+    path('receive_kb/<int:id>/', views.ReceiveData.as_view(), name='delete_data'),  # For delete
+
+]

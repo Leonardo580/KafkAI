@@ -11,6 +11,7 @@ class Tag(models.Model):
 
 
 class KnowledgeBase(models.Model):
+    id= models.IntegerField(primary_key=True)
     subject = models.CharField(max_length=255)
     question = models.TextField()
     answer = models.TextField()
