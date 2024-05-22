@@ -5,7 +5,7 @@ from asgiref.sync import async_to_sync
 from channels.generic.websocket import WebsocketConsumer
 
 from chat.models import Chat, Message
-
+from knowledge_base.ChatBot import RAGRetriever
 
 class ChatConsumer(WebsocketConsumer):
     def connect(self):
@@ -28,7 +28,7 @@ class ChatConsumer(WebsocketConsumer):
         if sender == 'user':
             chat = Chat.objects.get(id=self.chat_id)
             user_message = Message.objects.create(chat=chat, sender=sender, content=message)
-            llm_answer = "answer me"
+            llm_answer = RAGRetriever().generate_answer(message)
             llm_message = Message.objects.create(chat=chat, sender='llm', content=llm_answer)
             # Send the user's message to the chat group
             async_to_sync(self.channel_layer.group_send)(
