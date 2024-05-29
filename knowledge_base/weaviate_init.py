@@ -54,7 +54,11 @@ class WeaviateConnector:
                     vectorizer_config=wvc.config.Configure.Vectorizer.text2vec_cohere(
                         model="embed-multilingual-v3.0",
                     ),
-                    generative_config=wvc.config.Configure.Generative.cohere(),
+                    generative_config=wvc.config.Configure.Generative.cohere(
+                        model="command-r",
+                        temperature=0.2
+                    ),
+
                     properties=[
                         wvc.config.Property(
                             name="subject",

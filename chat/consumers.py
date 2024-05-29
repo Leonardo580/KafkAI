@@ -30,6 +30,7 @@ class ChatConsumer(WebsocketConsumer):
             user_message = Message.objects.create(chat=chat, sender=sender, content=message)
             llm_answer = RAGRetriever().generate_answer(message)
             llm_message = Message.objects.create(chat=chat, sender='llm', content=llm_answer)
+
             # Send the user's message to the chat group
             async_to_sync(self.channel_layer.group_send)(
                 self.chat_group_name,

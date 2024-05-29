@@ -227,7 +227,7 @@ function chat_messages(chatId) {
 
                 const botMessage = document.createElement('p');
                 botMessage
-                    .textContent = chunk;
+                    .innerHTML = chunk;
 
                 botMessageContent
                     .appendChild(botMessage);
