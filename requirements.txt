@@ -3,6 +3,8 @@ daphne
 weaviate-client
 langchain-weaviate
 langchain-community
+Cohere
+langchainhub
 django~=5.0.4
 django-viewflow~=2.0.2
 asgiref~=3.8.1

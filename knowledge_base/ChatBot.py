@@ -1,20 +1,32 @@
 import os
-
+from langchain_community.vectorstores import Weaviate
+from langchain.prompts.prompt import PromptTemplate
 from .weaviate_init import WeaviateConnector
-from langchain_cohere.llms import Cohere
+from langchain_cohere.chat_models import ChatCohere
 from langchain_cohere.embeddings import CohereEmbeddings
 from langchain_weaviate.vectorstores import WeaviateVectorStore
-from langchain.chains import RetrievalQA
+from langchain.chains.retrieval import create_retrieval_chain
 from django.conf import settings
 from langchain.chains import ChatVectorDBChain
 from langchain_community.vectorstores import Weaviate
 import weaviate
-
+from langchain_core.output_parsers import StrOutputParser
+from langchain import hub
+from langchain.chains.combine_documents import create_stuff_documents_chain
 
 class RAGRetriever:
     def __init__(self):
         self.weaviate_client = WeaviateConnector().get_instance().client
-        self.cohere_model = Cohere(cohere_api_key=os.getenv('COHERE_API_KEY'))
+        self.client = weaviate.Client(
+            "http://localhost:8081",
+            additional_headers={
+                "X-Cohere-Api-Key": settings.COHERE_API_KEY
+            }
+        )
+        self.retriever = Weaviate(self.client,
+                                  "Knowledge_base",
+                                  "question").as_retriever()
+        self.cohere_model = ChatCohere(cohere_api_key=os.getenv('COHERE_API_KEY'), truncate="AUTO")
         self.cohere_embeddings = CohereEmbeddings(cohere_api_key=os.getenv('COHERE_API_KEY'))
         self.cohere_embeddings.model = "command-r"
 
@@ -25,12 +37,7 @@ class RAGRetriever:
 
         template = ""
         self.rag_weaviate = self.weaviate_client.collections.get("knowledge_base")
-        self.client = weaviate.Client(
-            "http://localhost:8081",
-            additional_headers={
-                "X-Cohere-Api-Key": settings.COHERE_API_KEY
-            }
-        )
+
         # vector_store = Weaviate(
         #     client,
         #     "knowledge_base",
@@ -46,30 +53,27 @@ class RAGRetriever:
 
     def generate_answer(self, query):
         try:
-            response = self.rag_weaviate.generate.near_text(
-                query,
-                single_prompt="regenerate the answer to be more human readable {answer}",
-                limit=3,
-                distance=0.5,
-                grouped_task="summarize into bullet point"
+            # Set up the LangChain Weaviate retriever
+            retriever = self.retriever
 
-            ).generated
-            if response is None:
+            # Set up the prompt template for generating the answer
+            prompt_template = """
 
-                response = self.cohere_model.generate(
-                    prompts=["speak only in french", f"répondez à la question vos connaissances en français: {query}"], max_tokens=200)
-                response = response.generations[0][0].text
+            Instructions: regenerate the answer to be more human readable, summarize into bullet points, and limit the answer to 3 key points.
 
-            # response = self.client.query.get(
-            #     "knowledge_base",
-            #     ["subject", "question", "answer"]
-            # ).with_near_text({
-            #     "concepts": [query]
-            # }).with_limit(2).with_additional([
-            #     "distance"
-            # ]).do()
+            Answer:
+            """
+            # prompt = PromptTemplate(template=prompt_template)
+            retrival_qa_template = hub.pull("langchain-ai/retrieval-qa-chat")
+            combine = create_stuff_documents_chain(self.cohere_model, retrival_qa_template, output_parser=StrOutputParser())
+            retieval_chain= create_retrieval_chain(self.retriever, combine)
 
-            return str(response)
+
+            # Generate the answer using the RetrievalQA chain
+            result = retieval_chain
+            print(result)
+            return result
+
         except Exception as e:
             print(e)
 
