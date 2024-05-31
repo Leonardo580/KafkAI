@@ -1,3 +1,7 @@
+let ongoingStream = null;
+const responses = []; // Store responses here
+let idCounter = 0; // Unique ID counter for bot messages
+
 function createNewChat() {
     const chatHistoryList = document.querySelector('.chat-history-list');
     const newChatEntry = document.createElement('li');
@@ -50,16 +54,16 @@ function initializeChat(chatId) {
         'ws://' + window.location.host +
         '/ws/chat/' + chatId + '/'
     );
-
     chatSocket.onmessage = function (e) {
         const data = JSON.parse(e.data);
         const chunk = JSON.parse(data.message);
-
         // Check if the message is a chunk from the LLM's response
         if (data.sender === 'llm' && chunk.event === 'on_parser_stream') {
-            updateBotMessage(chunk.data.chunk);
-        } else {
-            appendBotMessage();
+            updateBotMessage(chunk.data.chunk, ongoingStream.id);
+        } else if (data.sender === 'llm' && chunk.event === 'on_parser_start') {
+
+            ongoingStream = appendBotMessage();
+
         }
     };
 
@@ -106,12 +110,15 @@ function appendUserMessage(message, chatMessages) {
     userMessageContainer.appendChild(userAvatar);
     userMessageContainer.appendChild(userMessageContent);
     chatMessages.appendChild(userMessageContainer);
+    scrollToBottom();
 }
 
 function appendBotMessage() {
     const chatMessages = document.getElementById('chat-messages');
 
     const botMessageContainer = document.createElement('div');
+    const botMessageId = `bot-message-${idCounter++}`;
+    botMessageContainer.id = botMessageId;
     botMessageContainer.classList.add('mb-4', 'flex', 'rounded-xl', 'bg-slate-50', 'px-2', 'py-6', 'dark:bg-slate-900', 'sm:px-4', 'chat-message');
 
     const botAvatar = document.createElement('img');
@@ -123,25 +130,23 @@ function appendBotMessage() {
 
     const botMessage = document.createElement('p');
     botMessage.classList.add('bot-message-text');
-    // botMessage.innerHTML = message;
 
     botMessageContent.appendChild(botMessage);
     botMessageContainer.appendChild(botAvatar);
     botMessageContainer.appendChild(botMessageContent);
     chatMessages.appendChild(botMessageContainer);
     scrollToBottom();
+
+    return { id: botMessageId }; // Return an object with the bot message ID
 }
 
-function updateBotMessage(chunk) {
-    const chatMessages = document.getElementById('chat-messages');
-    const botMessageText = chatMessages.querySelector('.bot-message-text');
+function updateBotMessage(chunk, botMessageId) {
+    const botMessageContainer = document.getElementById(botMessageId);
+    const botMessageText = botMessageContainer.querySelector('.bot-message-text');
 
     if (botMessageText) {
         botMessageText.innerHTML += chunk;
     }
-    // else {
-    //     appendBotMessage(chunk);
-    // }
 }
 
 function copyToClipboard(data) {

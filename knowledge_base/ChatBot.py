@@ -14,6 +14,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain import hub
 from langchain.chains.combine_documents import create_stuff_documents_chain
 
+
 class RAGRetriever:
     def __init__(self):
         self.weaviate_client = WeaviateConnector().get_instance().client
@@ -65,13 +66,12 @@ class RAGRetriever:
             """
             # prompt = PromptTemplate(template=prompt_template)
             retrival_qa_template = hub.pull("langchain-ai/retrieval-qa-chat")
-            combine = create_stuff_documents_chain(self.cohere_model, retrival_qa_template, output_parser=StrOutputParser())
-            retieval_chain= create_retrieval_chain(self.retriever, combine)
-
+            combine = create_stuff_documents_chain(self.cohere_model, retrival_qa_template
+                                                   , output_parser=StrOutputParser())
+            retieval_chain = create_retrieval_chain(self.retriever, combine)
 
             # Generate the answer using the RetrievalQA chain
             result = retieval_chain
-            print(result)
             return result
 
         except Exception as e:

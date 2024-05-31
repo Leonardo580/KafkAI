@@ -29,8 +29,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
             # Generate answer asynchronously
             llm_answer = RAGRetriever().generate_answer(message)
-            llm_message = await sync_to_async(Message.objects.create)(chat=chat, sender='llm', content=llm_answer)
-
+            # llm_message = await sync_to_async(Message.objects.create)(chat=chat, sender='llm', content=llm_answer)
+            llm_message = ""
             # Send the LLM's message to the chat group
             if llm_answer == "We are currently facing an issue with our servers. Please try again later.":
                 await self.channel_layer.group_send(
@@ -42,16 +42,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     }
                 )
             else:
-                async for chunk in llm_answer.astream_events({'input': message}, version='v1'):
+                async for chunk in llm_answer.astream_events({'input': message}, version='v2'):
                     if chunk["event"] in ["on_parser_start", "on_parser_stream"]:
-                        await self.channel_layer.group_send(
-                            self.chat_group_name,
-                            {
-                                'type': 'chat_message',
-                                'message': json.dumps(chunk),
-                                'sender': 'llm',
-                            }
-                    )
+                        await self.send(text_data=json.dumps({
+                            'message': json.dumps(chunk),
+                            'sender': 'llm',
+                        }))
+
+                        llm_message += chunk["data"].get("chunk", "")
+                await sync_to_async(Message.objects.create)(chat=chat, sender='llm',
+                                                            content=llm_message)
 
     async def chat_message(self, event):
         message = event['message']
@@ -65,8 +65,3 @@ class ChatConsumer(AsyncWebsocketConsumer):
     # @sync_to_async
     # def generate_answer_async(self, message):
     #     return RAGRetriever().generate_answer(message)
-
-
-
-
-
