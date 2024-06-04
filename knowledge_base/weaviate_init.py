@@ -115,16 +115,16 @@ class WeaviateConnector:
 
         # Insert dummy data into the "knowledge_base" collection
         kb_entry1 = {
-            "subject": "Python",
-            "question": "What is Python?",
-            "answer": "Python is a popular programming language known for its simplicity and readability.",
+            "subject": "Sage X3",
+            "question": "What is Sage X3?",
+            "answer": "Sage X3 is an Enterprise Resource Planning (ERP) software solution designed to manage various business processes, including finance, accounting, manufacturing, and customer relationship management.",
             # "tags": [tag1],
         }
 
         kb_entry2 = {
-            "subject": "Weaviate",
-            "question": "What is Weaviate?",
-            "answer": "Weaviate is a vector search engine that allows you to store and search for data based on semantic meaning.",
+            "subject": "Inventory Management in Sage X3",
+            "question": "How does Sage X3 handle inventory management?",
+            "answer": "Sage X3 offers features for managing inventory levels, tracking stock movements, and optimizing stock replenishment. It allows you to define minimum and maximum stock levels, generate purchase orders based on demand, and track product lifecycles.",
             # "tags": [tag2],
             # "related_knowledge_base": [kb_entry1],
         }

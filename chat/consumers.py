@@ -3,7 +3,7 @@ import asyncio
 from asgiref.sync import async_to_sync, sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 from chat.models import Chat, Message
-from knowledge_base.ChatBot import RAGRetriever
+from knowledge_base.ChatBot import RAGRetriever, get_chat_history
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
@@ -29,21 +29,22 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
             # Generate answer asynchronously
             llm_answer = RAGRetriever().generate_answer(message)
+            chat_history = await get_chat_history(self.chat_id)
             # llm_message = await sync_to_async(Message.objects.create)(chat=chat, sender='llm', content=llm_answer)
             llm_message = ""
             # Send the LLM's message to the chat group
             if llm_answer == "We are currently facing an issue with our servers. Please try again later.":
-                await self.channel_layer.group_send(
-                    self.chat_group_name,
-                    {
-                        'type': 'chat_message',
-                        'message': llm_answer,
-                        'sender': 'llm',
-                    }
-                )
+                await self.send(text_data=json.dumps({
+                    'message': llm_answer,
+                    'sender': 'llm',
+                }))
             else:
-                async for chunk in llm_answer.astream_events({'input': message}, version='v2'):
-                    if chunk["event"] in ["on_parser_start", "on_parser_stream"]:
+                async for chunk in llm_answer.astream_events(
+                        {'input': message, "chat_history": chat_history},
+                        version='v2'
+                        ):
+
+                    if chunk["event"] in ["on_parser_start", "on_parser_stream"] and chunk["tags"][0] == "seq:step:4":
                         await self.send(text_data=json.dumps({
                             'message': json.dumps(chunk),
                             'sender': 'llm',
