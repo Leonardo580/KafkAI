@@ -6,7 +6,12 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View, DetailView
 from django.contrib.auth.models import User
+from rest_framework import viewsets
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.response import Response
+
 from chat.models import Chat, Message
+from chat.serializers import MessageSerializer, ChatSerializer
 
 
 # Create your views here.
@@ -34,26 +39,45 @@ class ChatDetailView(View):
     def get(self, request, id):
         # chat_id = self.kwargs.get('id')
         chat = Chat.objects.get(id=id)
-        messages = chat.messages.all()
+        messages = chat.messages.order_by('-created_at').reverse()[:10]
         return render(request, 'chats/chat_detail.html', {'messages': messages})
 
 
-@csrf_exempt
-class CreateNewChatView(View):
-    def post(self, request):
-        user_id = request.POST.get('user_id')
+class MessagePagination(PageNumberPagination):
+    page_size = 10
 
-        if user_id is None:
-            return JsonResponse({'error': 'User ID is required'}, status=400)
 
-        try:
-            user = User.objects.get(id=user_id)
-        except User.DoesNotExist:
-            return JsonResponse({'error': 'User does not exist'}, status=404)
+class MessageViewSet(viewsets.ModelViewSet):
+    queryset = Message.objects.all().order_by('-created_at')
+    serializer_class = MessageSerializer
+    pagination_class = MessagePagination
 
-        chat = Chat.objects.create(user=user)
-        return JsonResponse({'chat_id': chat.id})
+    def list(self, request, *args, **kwargs):
+        chat_id = kwargs.get('chat_id')
+        queryset = Message.objects.filter(chat_id=chat_id).order_by('-created_at').reverse()
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
-    def get(self, request):
-        chat_history = Chat.objects.values('id', 'user__username')
-        return JsonResponse(list(chat_history), safe=False)
+
+class ChatPagination(PageNumberPagination):
+    page_size = 5
+
+
+class ChatViewSet(viewsets.ModelViewSet):
+    queryset = Chat.objects.all().order_by('-created_at')
+    serializer_class = ChatSerializer
+    pagination_class = ChatPagination
+
+    def list(self, request, *args, **kwargs):
+        user_id = request.user.id
+        queryset = Chat.objects.filter(user_id=user_id).order_by("-created_at")
+        page= self.paginate_queryset(queryset)
+        if page is not None:
+            serializer= self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)

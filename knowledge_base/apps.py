@@ -7,7 +7,7 @@ class BotKbConfig(AppConfig):
 
     def ready(self):
         weaviate_init.WeaviateConnector().get_instance().create_schema()
-        weaviate_init.WeaviateConnector().get_instance().create_dummy_data()
+        # weaviate_init.WeaviateConnector().get_instance().create_dummy_data()
         # weaviate_init.WeaviateConnector().get_instance().show_data()
 
 
