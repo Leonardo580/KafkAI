@@ -1,0 +1,11 @@
+<!-- users/admin/add_user.html -->
+{% extends "admin.html" %}
+
+{% block content %}
+<h1>Add User</h1>
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Add</button>
+</form>
+{% endblock %}

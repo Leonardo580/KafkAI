@@ -1,21 +1,27 @@
 import json
+from django.core.paginator import Paginator
 
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import UserPassesTestMixin
 from django.contrib.auth.models import User
 from django.contrib.auth.views import LoginView, LogoutView, PasswordResetView, PasswordResetConfirmView
 from django.contrib.messages.views import SuccessMessageMixin
 from django.http import JsonResponse
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy
+from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-from django.views.generic.edit import CreateView
+from django.views.generic import TemplateView
+from django.views.generic.edit import CreateView, UpdateView, DeleteView
 
-from .forms import EditUserForm, EditProfileForm, CustomPasswordResetForm, CustomSetPasswordForm
+from .forms import EditUserForm, EditProfileForm, CustomPasswordResetForm, CustomSetPasswordForm, EditUserAdminForm, \
+    AddUserForm
 from .forms import SignInForm, SignUpForm
 from .models import Profile
+from django.contrib import messages
 
 
 # from django.contrib.auth.forms import UserCreationForm
@@ -65,13 +71,13 @@ class CustomPasswordResetConfirmView(PasswordResetConfirmView):
 #     return redirect(reverse_lazy("login"))
 
 
-
 @login_required
 def home(request):
-
     chats = request.user.chats.all().order_by('-created_at')[:10]
+    is_chats_low = len(chats) < 10
     return render(request, 'header.html',
-                  {'user': request.user, "profile": Profile.objects.get(user=request.user), "chats": chats})
+                  {'user': request.user, "profile": Profile.objects.get(user=request.user), "chats": chats,
+                   "isChats": not is_chats_low})
 
 
 def signup_redirect(request):
@@ -116,3 +122,73 @@ def edit_profile_view(request):
     }
 
     return render(request, 'users/edit.html', context)
+
+
+#### ADMIN DASHBOARD ####
+
+
+class AdminRequiredMixin(UserPassesTestMixin):
+    def test_func(self):
+        return self.request.user.is_superuser
+
+    def handle_no_permission(self):
+        messages.warning(self.request, "You don't have permission to access this page")
+        return redirect('home')
+
+
+class AdminDashboardView(AdminRequiredMixin, TemplateView):
+    template_name = 'admin.html'
+
+
+class ShowUsersView(AdminRequiredMixin, TemplateView):
+    template_name = 'users/admin/show.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Retrieve all users
+        users = User.objects.all().order_by('username')
+
+        # Paginate the users
+        paginator = Paginator(users, 20)  # Show 10 users per page
+        page_number = self.request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+
+        context['users'] = page_obj
+        context['edit_user_form'] = EditUserForm()
+        context['add_user_form'] = AddUserForm()
+        return context
+
+    def post(self, request, *args, **kwargs):
+        form = AddUserForm(request.POST)
+        if form.is_valid():
+            # Handle AddUserForm submission
+            user = form.save()
+            # Perform any additional actions, such as sending a welcome email or setting up the user's profile
+            return redirect(reverse_lazy('show_users'))
+
+        # If the form is not valid, or if neither form was submitted, render the template with the existing context
+        context = self.get_context_data(**kwargs)
+        return render(request, self.template_name, context)
+
+
+class EditUserView(AdminRequiredMixin, SuccessMessageMixin, UpdateView):
+    model = User
+    form_class = AddUserForm
+    template_name = 'users/admin/edit_user.html'
+    success_url = reverse_lazy('show_users')
+    success_message = "User updated successfully"
+
+
+class DeleteUserAdminView(AdminRequiredMixin, View):
+    def get(self, request, pk):
+        # Get the user object
+        user = get_object_or_404(User, id=pk)
+        # Delete the user
+        if user == request.user:
+            messages.error(request, "You can't delete yourself")
+            return reverse_lazy('show_users')
+        user.delete()
+
+        # Redirect to the 'show_user' view
+        return reverse_lazy('show_user')

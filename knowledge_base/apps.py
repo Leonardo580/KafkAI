@@ -6,7 +6,8 @@ class BotKbConfig(AppConfig):
     name = 'knowledge_base'
 
     def ready(self):
-        weaviate_init.WeaviateConnector().get_instance().create_schema()
+        pass
+        # weaviate_init.WeaviateConnector().get_instance().create_schema()
         # weaviate_init.WeaviateConnector().get_instance().create_dummy_data()
         # weaviate_init.WeaviateConnector().get_instance().show_data()
 

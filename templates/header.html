@@ -90,19 +90,21 @@
                         {% endfor %}
 
                         <!-- Load More Chats Button -->
-                        <li>
-                            <button @click.prevent="loadMoreChats()"
-                                    class="group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                                     stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                          d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>
-                                </svg>
-                                Load More Chats
-                            </button>
-                        </li>
+                        {% if isChats %}
+                            <li>
+                                <button @click.prevent="loadMoreChats()"
+                                        class="group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                         stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                              d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>
+                                    </svg>
+                                    Load More Chats
+                                </button>
+                            </li>
+                        {% endif %}
                     </ul>
-                    
+
                 </div>
                 <!-- ... -->
             </nav>
@@ -299,8 +301,22 @@
         </header>
         <!-- ===== Header End ===== -->
         <!-- ===== Main Content Start ===== -->
+    {% if messages %}
+
+                    {% for message in messages %}
+                        <div{% if message.tags %}
+                            class="bg-blue-100 border-t border-b border-blue-500 text-blue-700 px-4 py-3 rounded relative m-1.5"
+                            role="alert"{% endif %}>
+                            <span class="block sm:inline">{{ message }}</span>
+                        </div>
+                    {% endfor %}
+
+            {% endif %}
         <main class="flex items-center justify-center h-screen" id="main">
+        
+        
             <div class="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10">
+            
                 {% block content %}
                     <div class="flex flex-col items-center justify-center" @click.prevent="createNewChat()">
                         <a href="#"

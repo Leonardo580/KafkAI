@@ -25,6 +25,8 @@
     <orderEntry type="library" name="babel-standalone" level="application" />
     <orderEntry type="library" name="react" level="application" />
     <orderEntry type="library" name="react-dom" level="application" />
+    <orderEntry type="library" name="infinite-scroll.pkgd" level="application" />
+    <orderEntry type="library" name="alpinejs" level="application" />
   </component>
   <component name="TemplatesService">
     <option name="TEMPLATE_CONFIGURATION" value="Django" />

@@ -22,5 +22,10 @@ urlpatterns = [
          name='password_reset_complete'),
     path('forgot/', views.ResetPasswordView.as_view(), name='forgot_pd'),
     path('social/signup/', views.signup_redirect, name='signup_redirect'),
+    path("admin_dashboard/", views.AdminDashboardView.as_view(), name="admin_dashboard"),
+    path("show_users/", views.ShowUsersView.as_view(), name="show_users"),
+    path("edit_user/<int:pk>/", views.EditUserView.as_view(), name="edit_user"),
+    path("delete_user/<int:pk>/", views.DeleteUserAdminView.as_view(), name="delete_user"),
+
 
 ]

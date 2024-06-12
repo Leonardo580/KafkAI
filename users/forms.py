@@ -104,9 +104,6 @@ class CustomPasswordResetForm(PasswordResetForm):
             'class': 'w-full rounded border-[1.5px] border-stroke px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary'})
 
 
-
-
-
 class CustomSetPasswordForm(SetPasswordForm):
     new_password1 = forms.CharField(
         label=_("New password"),
@@ -140,3 +137,73 @@ class CustomSetPasswordForm(SetPasswordForm):
             'class': 'w-full rounded border-[1.5px] border-stroke px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary'})
         self.fields["new_password2"].widget.attrs.update({
             'class': 'w-full rounded border-[1.5px] border-stroke px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary'})
+
+
+class AddUserForm(forms.ModelForm):
+    password1 = forms.CharField(
+        widget=forms.PasswordInput(attrs={
+            'class': 'shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500',
+            'placeholder': 'Password'
+        }),
+        label='Password'
+    )
+    password2 = forms.CharField(
+        widget=forms.PasswordInput(attrs={
+            'class': 'shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500',
+            'placeholder': 'Confirm Password'
+        }),
+        label='Confirm Password'
+    )
+
+    class Meta:
+        model = User
+        widgets = {
+            'username': forms.TextInput(attrs={
+                'class': 'shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500',
+                'placeholder': 'Username'
+            }),
+            'first_name': forms.TextInput(attrs={
+                'class': 'shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500',
+                'placeholder': 'First Name'
+            }),
+            'last_name': forms.TextInput(attrs={
+                'class': 'shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500',
+                'placeholder': 'Last Name'
+            }),
+            'email': forms.EmailInput(attrs={
+                'class': 'shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500',
+                'placeholder': 'example@company.com'
+            }),
+            'is_superuser': forms.CheckboxInput(attrs={
+                'class': 'w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600'
+            })
+        }
+        fields = ['username', 'first_name', 'last_name', 'email', 'is_superuser']
+
+    def clean_password2(self):
+        password1 = self.cleaned_data.get("password1")
+        password2 = self.cleaned_data.get("password2")
+        if password1 and password2 and password1 != password2:
+            raise forms.ValidationError("Passwords don't match")
+        return password2
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.set_password(self.cleaned_data["password1"])
+        if commit:
+            user.save()
+        return user
+
+
+class EditUserAdminForm(AddUserForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        instance = kwargs.get('instance', None)
+        if instance:
+            # Set the initial values for the form fields
+            self.initial['username'] = instance.username
+            self.initial['first_name'] = instance.first_name
+            self.initial['last_name'] = instance.last_name
+            self.initial['email'] = instance.email
+            self.initial['is_staff'] = instance.is_staff
+            self.initial['is_superuser'] = instance.is_superuser

@@ -1,0 +1,64 @@
+{% for field in form %}
+    {% if field.name == 'username' %}
+        <div class="col-span-6">
+            <label for="{{ field.id_for_label }}"
+                   class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}
+                <p class="text-gray-600 text-sm">{{ field.help_text }}</p>
+            {% endif %}
+            {% if field.errors %}
+                <p class="text-red-600 text-sm">{{ field.errors }}</p>
+            {% endif %}
+        </div>
+    {% elif field.name == 'first_name' or field.name == 'last_name' %}
+        <div class="col-span-6 sm:col-span-3">
+            <label for="{{ field.id_for_label }}"
+                   class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}
+                <p class="text-gray-600 text-sm">{{ field.help_text }}</p>
+            {% endif %}
+            {% if field.errors %}
+                <p class="text-red-600 text-sm">{{ field.errors }}</p>
+            {% endif %}
+        </div>
+        {% elif field.name == 'email'%}
+        <div class="col-span-6">
+            <label for="{{ field.id_for_label }}"
+                   class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}
+                <p class="text-gray-600 text-sm">{{ field.help_text }}</p>
+            {% endif %}
+            {% if field.errors %}
+                <p class="text-red-600 text-sm">{{ field.errors }}</p>
+            {% endif %}
+        </div>
+    {% elif field.name == 'password1' or field.name == 'password2' %}
+        <div class="col-span-6">
+            <label for="{{ field.id_for_label }}"
+                   class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}
+                <p class="text-gray-600 text-sm">{{ field.help_text }}</p>
+            {% endif %}
+            {% if field.errors %}
+                <p class="text-red-600 text-sm">{{ field.errors }}</p>
+            {% endif %}
+        </div>
+    {% elif field.name == 'is_superuser' %}
+        <div class="col-span-6">
+            <label class="inline-flex items-center mt-3">
+                {{ field }}
+                <span class="ml-2 text-white">Superuser</span>
+            </label>
+            {% if field.help_text %}
+                <p class="text-gray-600 text-sm">{{ field.help_text }}</p>
+            {% endif %}
+            {% if field.errors %}
+                <p class="text-red-600 text-sm">{{ field.errors }}</p>
+            {% endif %}
+        </div>
+    {% endif %}
+{% endfor %}
