@@ -25,6 +25,8 @@ urlpatterns = [
                   path('', include('allauth.urls')),
                   path('chat/', include('chat.urls')),
                   path("api/", include("knowledge_base.urls")),
+                  path('pipeline/', include('pipeline.urls')),
+                  path('knowledge/', include('knowledge.urls')),
                   # path('verification/', include('verify_email.urls')),
 
               ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

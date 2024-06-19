@@ -1,0 +1,351 @@
+{% extends 'admin.html' %}
+{% load static %}
+
+{% block content %}
+
+    <div class="grid grid-cols-1 px-4 pt-6 xl:grid-cols-3 xl:gap-4">
+        <a id="openModalBtn"
+           class="group flex flex-col col-span-1 border-black/5 min-h-[160px] transition-all duration-200 ease-in-out cursor-pointer hover:shadow-lg bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700">
+            <div class="flex items-center p-4">
+                <svg class="h-6 w-6 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24"
+                     stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                </svg>
+                <h5 class="ml-2 text-lg font-semibold tracking-tight text-gray-900 dark:text-white">Create
+                    Knowledge</h5>
+            </div>
+            <div class="flex-grow p-3">
+                <p class="font-normal text-gray-700 dark:text-gray-400">Import your data and build your own custom
+                    knowledge system</p>
+            </div>
+        </a>
+
+        {% for k in knowledge %}
+            <div class="group relative flex flex-col col-span-1 border-black/5 min-h-[160px] transition-all duration-200 ease-in-out cursor-pointer hover:shadow-lg bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 edit-knowledge"
+                 data-knowledge-id="{{ k.id }}">
+                <div class="flex items-center p-4">
+                    <h5 class="ml-2 text-lg font-semibold tracking-tight text-gray-900 dark:text-white">{{ k.title }}</h5>
+                </div>
+                <div class="flex-grow p-3">
+                    <p class="font-normal text-gray-700 dark:text-gray-400">{{ k.description }}</p>
+                </div>
+                <div class="flex justify-end p-3">
+                    <a href="#"
+                       class=" block px-4 py-2 text-red-500 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-red delete-knowledge"
+                       data-knowledge-id="{{ k.id }}">Delete</a>
+                </div>
+            </div>
+        {% endfor %}
+
+    </div>
+
+    <!-- Modal container -->
+    <div id="modal-container" class="hidden fixed z-50 inset-0 overflow-y-auto transition-opacity duration-300 ease-out"
+         aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 dark:bg-opacity-50 transition-opacity duration-300 ease-out"
+                 aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div id="modal-content"
+                 class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all duration-300 ease-out scale-95 opacity-0 dark:bg-gray-500 sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-200 sm:mx-0 sm:h-10 sm:w-10">
+                            <!-- Icon or content -->
+                        </div>
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-gray-100" id="modal-title">
+                                Create Knowledge</h3>
+                            <div class="mt-2">
+                                <p class="text-sm text-gray-500 dark:text-gray-400">Import your data and build your own
+                                    custom knowledge system.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="modal-body" class="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <form id="knowledgeForm" class="space-y-6">
+                        {% csrf_token %}
+                        <div id="formError" class="text-red-500 text-sm hidden"></div> <!-- Error message container -->
+                        <input type="hidden" id="knowledgeId" name="knowledgeId" value="">
+                        <!-- Hidden input for knowledge ID -->
+
+                        <div>
+                            <label for="title"
+                                   class="block text-sm font-medium text-gray-700 dark:text-gray-300">Title</label>
+                            <input type="text" name="title" id="title"
+                                   class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400">
+                        </div>
+                        <div>
+                            <label for="description" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
+                            <textarea name="description" id="description"
+                                      class="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"></textarea>
+                        </div>
+                        <div>
+                            <label for="files" id="file-list"
+                                   class="block text-sm font-medium text-gray-700 dark:text-gray-300">Files</label>
+                            <div id="fileInputs"></div>
+                            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Accepted file types: .txt, .pdf,
+                                .docx</p>
+                            <button type="button" id="addFileBtn"
+                                    class="mt-2 text-blue-500 hover:text-blue-700 dark:hover:text-blue-500 dark:text-white">
+                                Add file
+                            </button>
+                        </div>
+                        <div class="">
+                            <button type="submit"
+                                    class="inline-flex items-center px-5 py-2.5 mt-4 sm:mt-6 text-sm font-medium text-center text-white bg-primary-700 rounded-lg focus:ring-4 focus:ring-primary-200 dark:focus:ring-primary-900 hover:bg-primary-800">
+                                Ok
+                            </button>
+                            <button type="button" id="closeModalBtn"
+                                    class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white dark:bg-gray-800 text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+{% block extrajs %}
+    <script>
+        const openModalBtn = document.getElementById('openModalBtn');
+        const modalContainer = document.getElementById('modal-container');
+        const modalContent = document.getElementById('modal-content');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const knowledgeForm = document.getElementById('knowledgeForm');
+        const fileInputs = document.getElementById('fileInputs');
+        const addFileBtn = document.getElementById('addFileBtn');
+        const formError = document.getElementById('formError');
+        const knowledgeIdInput = document.getElementById('knowledgeId');
+
+        let formData = {
+            title: '',
+            description: '',
+            files: [],
+        };
+
+        openModalBtn.addEventListener('click', openModal);
+        closeModalBtn.addEventListener('click', closeModal);
+        addFileBtn.addEventListener('click', addFileInput);
+        knowledgeForm.addEventListener('submit', submitForm);
+
+        function openModal() {
+            formData = {
+                title: '',
+                description: '',
+                files: [],
+            };
+            modalContainer.classList.remove('hidden');
+            setTimeout(() => {
+                modalContainer.classList.replace('opacity-0', 'opacity-100');
+                modalContent.classList.replace('scale-95', 'scale-100');
+                modalContent.classList.replace('opacity-0', 'opacity-100');
+            }, 10);
+        }
+
+        function closeModal() {
+            modalContainer.classList.replace('opacity-100', 'opacity-0');
+            modalContent.classList.replace('scale-100', 'scale-95');
+            modalContent.classList.replace('opacity-100', 'opacity-0');
+            setTimeout(() => {
+                modalContainer.classList.add('hidden');
+            }, 300); // Matches the duration of the transition
+        }
+
+        function addFileInput() {
+            const fileInput = document.createElement('div');
+            fileInput.classList.add('flex', 'items-center', 'mt-2');
+
+            const fileInputField = document.createElement('input');
+            fileInputField.type = 'file';
+            fileInputField.classList.add('block', 'w-full', 'text-sm', 'text-gray-900', 'border', 'border-gray-300', 'rounded-lg', 'cursor-pointer', 'focus:outline-none', 'dark:text-white');
+            fileInputField.addEventListener('change', handleFileUpload);
+
+            const removeFileBtn = document.createElement('button');
+            removeFileBtn.type = 'button';
+            removeFileBtn.classList.add('ml-2', 'text-red-500', 'hover:text-red-700');
+            removeFileBtn.textContent = 'Remove';
+            removeFileBtn.addEventListener('click', () => {
+                fileInputs.removeChild(fileInput);
+            });
+
+            fileInput.appendChild(fileInputField);
+            fileInput.appendChild(removeFileBtn);
+            fileInputs.appendChild(fileInput);
+        }
+
+        function handleFileUpload(event) {
+            const fileIndex = Array.from(fileInputs.children).indexOf(event.target.parentElement);
+            formData.files[fileIndex] = event.target.files[0];
+        }
+
+        function submitForm(event) {
+            event.preventDefault();
+
+            const form = new FormData();
+            form.append('title', document.getElementById('title').value);
+            form.append('description', document.getElementById('description').value);
+            formData.files.forEach((file, index) => {
+                if (file) {
+                    form.append('file_' + index, file);
+                }
+            });
+
+            const knowledgeId = knowledgeIdInput.value;
+            const url = knowledgeId ? `/knowledge/edit/${knowledgeId}/` : '/knowledge/create/';
+            const method = knowledgeId ? 'PUT' : 'POST';
+
+            fetch(url, {
+                method: method,
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: form
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        closeModal();
+                        if (method === 'POST') {
+                            const newKnowledgeCard = document.createElement('div');
+                            newKnowledgeCard.classList.add('group', 'flex', 'flex-col', 'col-span-1', 'border-black/5', 'min-h-[160px]', 'transition-all', 'duration-200', 'ease-in-out', 'cursor-pointer', 'hover:shadow-lg', 'bg-white', 'border', 'border-gray-200', 'rounded-lg', 'shadow', 'hover:bg-gray-100', 'dark:border-gray-700', 'dark:bg-gray-800', 'dark:hover:bg-gray-700');
+
+                            newKnowledgeCard.innerHTML = `
+                <div class="flex items-center p-4">
+                    <h5 class="ml-2 text-lg font-semibold tracking-tight text-gray-900 dark:text-white">${form.get("title")}</h5>
+                </div>
+                <div class="flex-grow p-3">
+                    <p class="font-normal text-gray-700 dark:text-gray-400">${form.get("description")}</p>
+                </div>
+<div class="flex justify-end p-3">
+                    <a href="#"
+                       class=" block px-4 py-2 text-red-500 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-red delete-knowledge"
+                       data-knowledge-id="${data.knowledge_id}">Delete</a>
+                </div>
+            `;
+
+                            openModalBtn.insertAdjacentElement('afterend',newKnowledgeCard)
+                        } else if (method === 'PUT') {
+                            const knowledgeCard = document.querySelector(`[data-knowledge-id="${knowledgeId}"]`);
+                            knowledgeCard.querySelector('h5').textContent = form.get("title");
+                            knowledgeCard.querySelector('p').textContent = form.get("description");
+                        }
+                    } else {
+                        console.log('Error:', data.message);
+                        formError.textContent = data.message;
+                        formError.classList.remove('hidden');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    formError.textContent = 'An unexpected error occurred.';
+                    formError.classList.remove('hidden');
+                });
+        }
+
+        document.querySelectorAll('.delete-knowledge').forEach(function (link) {
+            link.addEventListener('click', function (event) {
+                event.preventDefault(); // Prevent the default link behavior
+
+                const knowledgeId = this.dataset.knowledgeId;
+                deleteKnowledge(knowledgeId);
+            });
+        });
+
+        function deleteKnowledge(knowledgeId) {
+            fetch(`/knowledge/delete/${knowledgeId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify({knowledgeId: knowledgeId})
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const knowledgeCard = document.querySelector(`[data-knowledge-id="${knowledgeId}"]`).closest('.group');
+                        knowledgeCard.remove();
+                    } else {
+                        console.error('Error deleting knowledge:', data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting knowledge:', error);
+                });
+        }
+
+        document.querySelectorAll('.edit-knowledge').forEach(function (link) {
+            link.addEventListener('click', function (event) {
+                event.preventDefault(); // Prevent the default link behavior
+
+                const knowledgeId = this.dataset.knowledgeId;
+                editKnowledge(knowledgeId);
+            });
+        });
+
+        function editKnowledge(knowledgeId) {
+            const knowledgeCard = document.querySelector(`[data-knowledge-id="${knowledgeId}"]`);
+            const title = knowledgeCard.querySelector('h5').textContent;
+            const description = knowledgeCard.querySelector('p').textContent;
+
+            knowledgeIdInput.value = knowledgeId;
+            document.getElementById('title').value = title;
+            document.getElementById('description').value = description;
+
+            const fileInputs = document.getElementById('fileInputs');
+            fileInputs.innerHTML = '';
+
+            fetch(`/knowledge/${knowledgeId}/files/`)
+                .then(response => response.json())
+                .then(data => {
+                    const fileList = document.createElement('div');
+                    fileList.classList.add('mt-4');
+
+                    data.files.forEach((file, index) => {
+                        const fileItem = document.createElement('div');
+                        fileItem.classList.add('flex', 'items-center', 'justify-between', 'py-2', 'dark:text-white');
+
+                        const fileName = document.createElement('span');
+                        const maxLength = 30; // Maximum length of the file name before adding ellipsis
+                        fileName.textContent = file.name.length > maxLength ? `${file.name.slice(0, maxLength)}...` : file.name;
+
+                        const removeFileBtn = document.createElement('button');
+                        removeFileBtn.type = 'button';
+                        removeFileBtn.classList.add('text-red-500', 'hover:text-red-700');
+                        removeFileBtn.textContent = 'Remove';
+                        removeFileBtn.addEventListener('click', () => {
+                            fetch(`/knowledge/${knowledgeId}/files/`, {
+                                method: "DELETE",
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                                },
+                                body: JSON.stringify({filename: file.name})
+                            }).then(
+                                response => response.json()
+                            ).then(data => console.log(data.status))
+                                .catch(console.log);
+
+                            fileList.removeChild(fileItem);
+                        });
+
+                        fileItem.appendChild(fileName);
+                        fileItem.appendChild(removeFileBtn);
+                        fileList.appendChild(fileItem);
+                    });
+
+                    fileInputs.appendChild(fileList);
+                    openModal();
+                })
+                .catch(error => {
+                    console.error('Error fetching files:', error);
+                    formError.textContent = 'An unexpected error occurred while fetching files.';
+                    formError.classList.remove('hidden');
+                });
+        }
+    </script>
+{% endblock %}

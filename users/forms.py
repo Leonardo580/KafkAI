@@ -1,4 +1,5 @@
 from django import forms
+from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.forms import PasswordResetForm
 from django.contrib.auth.forms import UserCreationForm
@@ -139,7 +140,7 @@ class CustomSetPasswordForm(SetPasswordForm):
             'class': 'w-full rounded border-[1.5px] border-stroke px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary'})
 
 
-class AddUserForm(forms.ModelForm):
+class AddUserAdminForm(forms.ModelForm):
     password1 = forms.CharField(
         widget=forms.PasswordInput(attrs={
             'class': 'shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500',
@@ -195,15 +196,21 @@ class AddUserForm(forms.ModelForm):
         return user
 
 
-class EditUserAdminForm(AddUserForm):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        instance = kwargs.get('instance', None)
-        if instance:
-            # Set the initial values for the form fields
-            self.initial['username'] = instance.username
-            self.initial['first_name'] = instance.first_name
-            self.initial['last_name'] = instance.last_name
-            self.initial['email'] = instance.email
-            self.initial['is_staff'] = instance.is_staff
-            self.initial['is_superuser'] = instance.is_superuser
+
+class EditUserAdminForm(AddUserAdminForm):
+    password1 = forms.CharField(
+        widget=forms.PasswordInput(attrs={
+            'class': 'shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500',
+            'placeholder': 'Password'
+        }),
+        label='Password',
+        required=False
+    )
+    password2 = forms.CharField(
+        widget=forms.PasswordInput(attrs={
+            'class': 'shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500',
+            'placeholder': 'Confirm Password'
+        }),
+        label='Confirm Password',
+        required=False
+    )

@@ -50,6 +50,9 @@ INSTALLED_APPS = [
     "knowledge_base.apps.BotKbConfig",
     'rest_framework',
     "rest_framework_api_key",
+    "pipeline.apps.PipelineConfig",
+    "knowledge.apps.KnowledgeConfig"
+
     # "rest_framework_simple_api_key",
 
     # 'compressor',

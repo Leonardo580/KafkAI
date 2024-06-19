@@ -2,12 +2,13 @@ import json
 from django.core.paginator import Paginator
 
 from django.contrib import messages
-from django.contrib.auth import logout
+from django.contrib.auth import logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.contrib.auth.models import User
 from django.contrib.auth.views import LoginView, LogoutView, PasswordResetView, PasswordResetConfirmView
 from django.contrib.messages.views import SuccessMessageMixin
+from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy
@@ -18,7 +19,7 @@ from django.views.generic import TemplateView
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
 
 from .forms import EditUserForm, EditProfileForm, CustomPasswordResetForm, CustomSetPasswordForm, EditUserAdminForm, \
-    AddUserForm
+    AddUserAdminForm
 from .forms import SignInForm, SignUpForm
 from .models import Profile
 from django.contrib import messages
@@ -81,7 +82,7 @@ def home(request):
 
 
 def signup_redirect(request):
-    messages.error(request, "Something wrong here, it may be that you already have account!")
+    messages.error(request, "Something wrong here, it may be that you already have account!", "perm")
     return redirect(reverse_lazy('home'))
 
 
@@ -146,21 +147,31 @@ class ShowUsersView(AdminRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        # Retrieve all users
-        users = User.objects.all().order_by('username')
+        # Retrieve the search query
+        search_query = self.request.GET.get('search', '')
+
+        # Filter users based on the search query
+        if search_query:
+            users = User.objects.filter(
+                Q(username__icontains=search_query) |
+                Q(email__icontains=search_query)
+            ).order_by('username')
+        else:
+            users = User.objects.all().order_by('username')
 
         # Paginate the users
-        paginator = Paginator(users, 20)  # Show 10 users per page
+        paginator = Paginator(users, 20)  # Show 20 users per page
         page_number = self.request.GET.get('page')
         page_obj = paginator.get_page(page_number)
 
         context['users'] = page_obj
         context['edit_user_form'] = EditUserForm()
-        context['add_user_form'] = AddUserForm()
+        context['add_user_form'] = AddUserAdminForm()
+        context['search_query'] = search_query  # To preserve the search term in the template
         return context
 
     def post(self, request, *args, **kwargs):
-        form = AddUserForm(request.POST)
+        form = AddUserAdminForm(request.POST)
         if form.is_valid():
             # Handle AddUserForm submission
             user = form.save()
@@ -174,10 +185,18 @@ class ShowUsersView(AdminRequiredMixin, TemplateView):
 
 class EditUserView(AdminRequiredMixin, SuccessMessageMixin, UpdateView):
     model = User
-    form_class = AddUserForm
+    form_class = EditUserAdminForm
     template_name = 'users/admin/edit_user.html'
     success_url = reverse_lazy('show_users')
     success_message = "User updated successfully"
+
+    def get_object(self, queryset=None):
+        return self.request.user
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        update_session_auth_hash(self.request, form.instance)
+        return response
 
 
 class DeleteUserAdminView(AdminRequiredMixin, View):
@@ -187,8 +206,8 @@ class DeleteUserAdminView(AdminRequiredMixin, View):
         # Delete the user
         if user == request.user:
             messages.error(request, "You can't delete yourself")
-            return reverse_lazy('show_users')
+            return redirect(reverse_lazy('show_users'))
         user.delete()
 
         # Redirect to the 'show_user' view
-        return reverse_lazy('show_user')
+        return redirect(reverse_lazy('show_users'))

@@ -304,14 +304,16 @@
     {% if messages %}
 
                     {% for message in messages %}
-                        <div{% if message.tags %}
+        {% if message.tags == "warning" %}
+                        <div
                             class="bg-blue-100 border-t border-b border-blue-500 text-blue-700 px-4 py-3 rounded relative m-1.5"
-                            role="alert"{% endif %}>
+                            role="alert">
                             <span class="block sm:inline">{{ message }}</span>
                         </div>
-                    {% endfor %}
+                        {% endif %}
+        {% endfor %}
+    {% endif %}
 
-            {% endif %}
         <main class="flex items-center justify-center h-screen" id="main">
         
         

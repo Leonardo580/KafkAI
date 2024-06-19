@@ -1,0 +1,15 @@
+{% load static %}
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+
+    {{ file_formset.management_form }}
+    {% for form in file_formset %}
+        <div class="file-form">
+            {{ form.as_p }}
+        </div>
+    {% endfor %}
+
+    <button type="submit">Save</button>
+</form>
