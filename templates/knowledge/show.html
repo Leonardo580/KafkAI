@@ -22,13 +22,15 @@
         </a>
 
         {% for k in knowledge %}
-            <div class="group relative flex flex-col col-span-1 border-black/5 min-h-[160px] transition-all duration-200 ease-in-out cursor-pointer hover:shadow-lg bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 edit-knowledge"
-                 data-knowledge-id="{{ k.id }}">
-                <div class="flex items-center p-4">
-                    <h5 class="ml-2 text-lg font-semibold tracking-tight text-gray-900 dark:text-white">{{ k.title }}</h5>
-                </div>
-                <div class="flex-grow p-3">
-                    <p class="font-normal text-gray-700 dark:text-gray-400">{{ k.description }}</p>
+            <div class="group relative flex flex-col col-span-1 border-black/5 min-h-[160px] transition-all duration-200 ease-in-out  bg-white border border-gray-200 rounded-lg shadow  dark:border-gray-700 dark:bg-gray-800  ">
+                <div class="edit-knowledge cursor-pointer hover:shadow-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                     data-knowledge-id="{{ k.id }}">
+                    <div class="flex items-center p-4">
+                        <h5 class="ml-2 text-lg font-semibold tracking-tight text-gray-900 dark:text-white">{{ k.title }}</h5>
+                    </div>
+                    <div class="flex-grow p-3">
+                        <p class="font-normal text-gray-700 dark:text-gray-400">{{ k.description }}</p>
+                    </div>
                 </div>
                 <div class="flex justify-end p-3">
                     <a href="#"
@@ -108,6 +110,30 @@
             </div>
         </div>
     </div>
+
+    <style>
+        .card-enter {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+
+        .card-enter-active {
+            opacity: 1;
+            transform: translateY(0);
+            transition: opacity 0.3s, transform 0.3s;
+        }
+
+        .card-exit {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .card-exit-active {
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: opacity 0.3s, transform 0.3s;
+        }
+    </style>
 {% endblock %}
 {% block extrajs %}
     <script>
@@ -131,6 +157,24 @@
         closeModalBtn.addEventListener('click', closeModal);
         addFileBtn.addEventListener('click', addFileInput);
         knowledgeForm.addEventListener('submit', submitForm);
+
+        function addCardWithTransition(cardElement) {
+            cardElement.classList.add('card-enter');
+            setTimeout(() => {
+                cardElement.classList.add('card-enter-active');
+                cardElement.classList.remove('card-enter');
+            }, 10);
+        }
+
+        function removeCardWithTransition(cardElement, callback) {
+            cardElement.classList.add('card-exit-active');
+            cardElement.classList.remove('card-exit');
+            setTimeout(() => {
+                cardElement.classList.add('card-exit');
+                cardElement.classList.remove('card-exit-active');
+                if (typeof callback === 'function') callback();
+            }, 300); // Matches the duration of the transition
+        }
 
         function openModal() {
             formData = {
@@ -196,7 +240,7 @@
 
             const knowledgeId = knowledgeIdInput.value;
             const url = knowledgeId ? `/knowledge/edit/${knowledgeId}/` : '/knowledge/create/';
-            const method = knowledgeId ? 'PUT' : 'POST';
+            const method = 'POST';
 
             fetch(url, {
                 method: method,
@@ -209,26 +253,27 @@
                 .then(data => {
                     if (data.success) {
                         closeModal();
-                        if (method === 'POST') {
+                        if (!knowledgeId) {
                             const newKnowledgeCard = document.createElement('div');
-                            newKnowledgeCard.classList.add('group', 'flex', 'flex-col', 'col-span-1', 'border-black/5', 'min-h-[160px]', 'transition-all', 'duration-200', 'ease-in-out', 'cursor-pointer', 'hover:shadow-lg', 'bg-white', 'border', 'border-gray-200', 'rounded-lg', 'shadow', 'hover:bg-gray-100', 'dark:border-gray-700', 'dark:bg-gray-800', 'dark:hover:bg-gray-700');
+                            newKnowledgeCard.classList.add('group', 'flex', 'flex-col', 'col-span-1', 'border-black/5', 'min-h-[160px]', 'transition-all', 'duration-200', 'ease-in-out', 'bg-white', 'border', 'border-gray-200', 'rounded-lg', 'shadow', 'dark:border-gray-700', 'dark:bg-gray-800');
 
                             newKnowledgeCard.innerHTML = `
-                <div class="flex items-center p-4">
-                    <h5 class="ml-2 text-lg font-semibold tracking-tight text-gray-900 dark:text-white">${form.get("title")}</h5>
-                </div>
-                <div class="flex-grow p-3">
-                    <p class="font-normal text-gray-700 dark:text-gray-400">${form.get("description")}</p>
-                </div>
-<div class="flex justify-end p-3">
-                    <a href="#"
-                       class=" block px-4 py-2 text-red-500 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-red delete-knowledge"
-                       data-knowledge-id="${data.knowledge_id}">Delete</a>
-                </div>
-            `;
+                    <div class="edit-knowledge cursor-pointer hover:shadow-lg hover:bg-gray-100 dark:hover:bg-gray-700" data-knowledge-id="${data.knowledge_id}" > 
+                        <div class="flex items-center p-4">
+                            <h5 class="ml-2 text-lg font-semibold tracking-tight text-gray-900 dark:text-white">${form.get("title")}</h5>
+                        </div>
+                        <div class="flex-grow p-3">
+                            <p class="font-normal text-gray-700 dark:text-gray-400">${form.get("description")}</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-end p-3">
+                        <a href="#" class="block px-4 py-2 text-red-500 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-red delete-knowledge" data-knowledge-id="${data.knowledge_id}">Delete</a>
+                    </div>
+                `;
 
-                            openModalBtn.insertAdjacentElement('afterend',newKnowledgeCard)
-                        } else if (method === 'PUT') {
+                            addCardWithTransition(newKnowledgeCard);
+                            openModalBtn.insertAdjacentElement('afterend', newKnowledgeCard);
+                        } else if (knowledgeId) {
                             const knowledgeCard = document.querySelector(`[data-knowledge-id="${knowledgeId}"]`);
                             knowledgeCard.querySelector('h5').textContent = form.get("title");
                             knowledgeCard.querySelector('p').textContent = form.get("description");
@@ -268,7 +313,9 @@
                 .then(data => {
                     if (data.success) {
                         const knowledgeCard = document.querySelector(`[data-knowledge-id="${knowledgeId}"]`).closest('.group');
-                        knowledgeCard.remove();
+                        removeCardWithTransition(knowledgeCard, () => {
+                            knowledgeCard.remove();
+                        });
                     } else {
                         console.error('Error deleting knowledge:', data.error);
                     }
@@ -277,15 +324,6 @@
                     console.error('Error deleting knowledge:', error);
                 });
         }
-
-        document.querySelectorAll('.edit-knowledge').forEach(function (link) {
-            link.addEventListener('click', function (event) {
-                event.preventDefault(); // Prevent the default link behavior
-
-                const knowledgeId = this.dataset.knowledgeId;
-                editKnowledge(knowledgeId);
-            });
-        });
 
         function editKnowledge(knowledgeId) {
             const knowledgeCard = document.querySelector(`[data-knowledge-id="${knowledgeId}"]`);

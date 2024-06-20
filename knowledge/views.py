@@ -116,8 +116,8 @@ class KnowledgeFilesView(View):
 
 
 class EditKnowledgeView(AdminRequiredMixin, View):
-    def put(self, request, knowledge_id):
-        data = json.loads(request.body)
+    def post(self, request, knowledge_id):
+        data = request.POST
         title = data.get('title')
         description = data.get('description')
 
