@@ -51,8 +51,7 @@ INSTALLED_APPS = [
     'rest_framework',
     "rest_framework_api_key",
     "pipeline.apps.PipelineConfig",
-    "knowledge.apps.KnowledgeConfig"
-
+    "knowledge.apps.KnowledgeConfig",
     # "rest_framework_simple_api_key",
 
     # 'compressor',
@@ -88,7 +87,7 @@ CHANNEL_LAYERS = {
 
 WEAVIA_HOST = "localhost"
 WEAVIA_PORT = 8081
-COHERE_API_KEY= os.getenv('COHERE_API_KEY')
+COHERE_API_KEY = os.getenv('COHERE_API_KEY')
 SITE_ID = 1
 
 LOGIN_REDIRECT_URL = 'home'

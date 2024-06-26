@@ -4,6 +4,7 @@ weaviate-client
 langchain-weaviate
 langchain-community
 Cohere
+crispy-tailwind
 langchainhub
 django~=5.0.4
 django-viewflow~=2.0.2

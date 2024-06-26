@@ -27,6 +27,8 @@
     <orderEntry type="library" name="react-dom" level="application" />
     <orderEntry type="library" name="infinite-scroll.pkgd" level="application" />
     <orderEntry type="library" name="alpinejs" level="application" />
+    <orderEntry type="library" name="select2" level="application" />
+    <orderEntry type="library" name="@alpinejs/focus" level="application" />
   </component>
   <component name="TemplatesService">
     <option name="TEMPLATE_CONFIGURATION" value="Django" />
