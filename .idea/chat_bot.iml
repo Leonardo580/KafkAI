@@ -29,6 +29,8 @@
     <orderEntry type="library" name="alpinejs" level="application" />
     <orderEntry type="library" name="select2" level="application" />
     <orderEntry type="library" name="@alpinejs/focus" level="application" />
+    <orderEntry type="library" name="jquery" level="application" />
+    <orderEntry type="library" name="@ttskch/select2-bootstrap4-theme" level="application" />
   </component>
   <component name="TemplatesService">
     <option name="TEMPLATE_CONFIGURATION" value="Django" />

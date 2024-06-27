@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "rest_framework_api_key",
     "pipeline.apps.PipelineConfig",
     "knowledge.apps.KnowledgeConfig",
+    "django_select2",
     # "rest_framework_simple_api_key",
 
     # 'compressor',

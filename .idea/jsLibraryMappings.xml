@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="JavaScriptLibraryMappings">
-    <file url="file://$PROJECT_DIR$" libraries="{@alpinejs/focus, alpinejs, babel-standalone, infinite-scroll.pkgd, react, react-dom, select2}" />
+    <file url="file://$PROJECT_DIR$" libraries="{@alpinejs/focus, @ttskch/select2-bootstrap4-theme, alpinejs, babel-standalone, infinite-scroll.pkgd, jquery, react, react-dom, select2}" />
   </component>
 </project>

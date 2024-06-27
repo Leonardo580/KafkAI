@@ -1,0 +1,18 @@
+{% extends "admin.html" %}
+
+{% block content %}
+<div class="container  px-4 py-8 ">
+    <div class="bg-white shadow-md rounded-lg p-6 dark:bg-gray-800">
+        <h2 class="text-xl font-bold mb-4 dark:text-white">Delete Pipeline</h2>
+        <p class="mb-4 dark:text-white">Are you sure you want to delete the pipeline "{{ object.name }}"?</p>
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="flex justify-between">
+                <a href="{% url 'show_pipeline' %}" class="text-blue-600 hover:underline">Cancel</a>
+                <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded">Confirm Delete</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,21 +1,22 @@
 from django.shortcuts import render, get_object_or_404
 from django.urls import reverse_lazy
 from django.views.generic import ListView
-from django.views.generic.edit import CreateView, FormView, UpdateView
+from django.views.generic.edit import CreateView, FormView, DeleteView
 
 from knowledge.models import Knowledge
 from pipeline.forms import CreateSimplePipelineForm
-from pipeline.models import Pipeline, SimplePipeline
+from pipeline.models import Pipeline, SimplePipeline, PipelineConfig
+from users.views import AdminRequiredMixin
 
 
 # Create your views here.
-class PipelineView(ListView):
+class PipelineView(AdminRequiredMixin, ListView):
     model = Pipeline
     template_name = 'pipeline/show.html'
     context_object_name = 'pipelines'
 
 
-class CreateSimplePipelineView(FormView):
+class CreateSimplePipelineView(AdminRequiredMixin,FormView):
     form_class = CreateSimplePipelineForm
     template_name = 'pipeline/create_simple_pipeline.html'
     success_url = reverse_lazy('show_pipeline')  # Replace with your actual success URL
@@ -27,12 +28,13 @@ class CreateSimplePipelineView(FormView):
             description=form.cleaned_data['description'],
             creator=self.request.user  # Assuming you want to set the creator
         )
-
+        config = PipelineConfig.objects.create()
         # Create SimplePipeline instance
         simple_pipeline = SimplePipeline.objects.create(
             pipeline=pipeline,
             instruction=form.cleaned_data['instruction'],
-            variable=form.cleaned_data['variable']
+            variable=form.cleaned_data['variable'],
+            config=config
         )
 
         # Set the many-to-many relationship
@@ -42,30 +44,32 @@ class CreateSimplePipelineView(FormView):
         return super().form_valid(form)
 
 
-class EditSimplePipelineView(UpdateView):
-    model = SimplePipeline
+class EditSimplePipelineView(AdminRequiredMixin,FormView):
     form_class = CreateSimplePipelineForm
-    template_name = 'pipeline/create_simple_pipeline.html'
+    template_name = 'pipeline/update_simple_pipeline.html'
     success_url = reverse_lazy('show_pipeline')  # Replace with your actual success URL
 
-    def get_object(self, queryset=None):
-        return get_object_or_404(SimplePipeline, pk=self.kwargs['pk'])
+    def get_object(self):
+        return get_object_or_404(Pipeline, id=self.kwargs['pk'])
 
     def get_initial(self):
+        pipeline = self.get_object()
+        simple_pipeline = SimplePipeline.objects.get(pipeline=pipeline)
         initial = super().get_initial()
-        simple_pipeline = self.get_object()
-        initial['name'] = simple_pipeline.pipeline.name
-        initial['description'] = simple_pipeline.pipeline.description
-        initial['instruction'] = simple_pipeline.instruction
-        initial['variable'] = simple_pipeline.variable
-        initial['knowledge'] = simple_pipeline.knowledge.all()
+        initial.update({
+            'name': pipeline.name,
+            'description': pipeline.description,
+            'instruction': simple_pipeline.instruction,
+            'variable': simple_pipeline.variable,
+            'knowledge': simple_pipeline.knowledge.all(),
+        })
         return initial
 
     def form_valid(self, form):
-        simple_pipeline = self.get_object()
-        pipeline = simple_pipeline.pipeline
+        pipeline = self.get_object()
+        simple_pipeline = SimplePipeline.objects.get(pipeline=pipeline)
 
-        # Update Pipeline instance
+        # Update the associated Pipeline instance
         pipeline.name = form.cleaned_data['name']
         pipeline.description = form.cleaned_data['description']
         pipeline.save()
@@ -80,3 +84,9 @@ class EditSimplePipelineView(UpdateView):
         simple_pipeline.knowledge.set(knowledge_ids)
 
         return super().form_valid(form)
+
+
+class DeletePipelineView(AdminRequiredMixin, DeleteView):
+    model = Pipeline
+    template_name = 'pipeline/delete_pipeline.html'
+    success_url = reverse_lazy('show_pipeline')

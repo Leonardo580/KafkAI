@@ -27,6 +27,7 @@ urlpatterns = [
                   path("api/", include("knowledge_base.urls")),
                   path('pipeline/', include('pipeline.urls')),
                   path('knowledge/', include('knowledge.urls')),
+                  path("select2/", include("django_select2.urls")),
                   # path('verification/', include('verify_email.urls')),
 
               ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

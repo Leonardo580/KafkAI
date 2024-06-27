@@ -21,11 +21,11 @@ class Pipeline(models.Model):
 
 
 class SimplePipeline(models.Model):
-    pipeline = models.ForeignKey('Pipeline', on_delete=models.CASCADE, related_name='steps')
+    pipeline = models.OneToOneField('Pipeline', on_delete=models.CASCADE, related_name='pipeline')
     instruction = models.TextField()
     variable = models.CharField(max_length=255)
-    knowledge = models.ManyToManyField(knowledge_models.Knowledge, blank=True, related_name='simple_pipelines')
-    config = models.ForeignKey('PipelineConfig', on_delete=models.CASCADE, default=1)
+    knowledge = models.ManyToManyField(knowledge_models.Knowledge, blank=True, related_name='knowledge')
+    config = models.OneToOneField('PipelineConfig', on_delete=models.CASCADE)
 
     def __str__(self):
         return f"{self.pipeline.name}"

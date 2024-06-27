@@ -1,51 +1,58 @@
 {% extends 'admin.html' %}
 {% load static %}
 {% block content %}
+    <!-- Include Select2 CSS and JS from CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.full.min.js"></script>
+
+    <!-- Custom CSS to match Flowbite theme -->
     <style>
         .select2-container--default .select2-selection--multiple {
-            background-color: #f9fafb; /* light background color */
-            border: 1px solid #d1d5db; /* light border color */
-            border-radius: 0.375rem; /* rounded-lg */
-            padding: 0.5rem; /* padding */
+            background-color: #f9fafb;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            padding: 0.5rem;
         }
         .select2-container--default .select2-selection--multiple .select2-selection__choice {
-            background-color: #3b82f6; /* primary color */
-            border: 1px solid #2563eb; /* darker primary color */
-            color: white; /* text color */
-            padding: 0.25rem 0.5rem; /* padding */
-            border-radius: 0.25rem; /* rounded */
+            background-color: #3b82f6;
+            border: 1px solid #2563eb;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
         }
         .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
-            color: white; /* remove button color */
-            margin-right: 0.25rem; /* spacing */
+            color: white;
+            margin-right: 0.25rem;
         }
         .select2-container--default .select2-selection--multiple .select2-search--inline .select2-search__field {
-            background-color: transparent; /* transparent background */
-            border: none; /* no border */
-            color: #1f2937; /* dark text color */
-            outline: none; /* no outline */
-            padding: 0; /* no padding */
+            background-color: transparent;
+            border: none;
+            color: #1f2937;
+            outline: none;
+            padding: 0;
         }
         .select2-container--default .select2-results__option--highlighted {
-            background-color: #3b82f6; /* primary color */
-            color: white; /* text color */
+            background-color: #3b82f6;
+            color: white;
         }
     </style>
-     <div class="flex flex-col md:flex-row justify-between max-w-6xl mx-auto p-6 space-y-8 md:space-y-0 md:space-x-8">
+
+    {{ form.media.css }}
+    <div class="flex flex-col md:flex-row justify-between max-w-6xl mx-auto p-6 space-y-8 md:space-y-0 md:space-x-8">
         <div class="w-full md:w-1/2 p-6 space-y-8 bg-white dark:bg-gray-800 rounded-lg shadow">
             <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
-                Create a simple pipeline
+                Update Simple Pipeline
             </h2>
             <form method="post">
                 {% csrf_token %}
-
+                
                 {% for field in form %}
                     <div class="mb-6">
                         <div class="dark:text-white">
                             {{ field.label_tag }}
                         </div>
                         {% if field.name == "knowledge" %}
-                            <div class="relative dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                            <div class="relative">
                                 {{ field }}
                             </div>
                         {% else %}
@@ -71,14 +78,8 @@
         </div>
     </div>
 
-
-{% endblock %}
-
-
-
-
-{% block extrajs %}
- <script type="text/javascript">
+    <!-- Initialize Select2 -->
+    <script type="text/javascript">
         $(document).ready(function() {
             $('.select2-multiple').select2({
                 theme: 'default', // Default theme, custom styles will apply
@@ -87,5 +88,3 @@
         });
     </script>
 {% endblock %}
-
-
