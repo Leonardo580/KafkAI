@@ -258,7 +258,7 @@
                             newKnowledgeCard.classList.add('group', 'flex', 'flex-col', 'col-span-1', 'border-black/5', 'min-h-[160px]', 'transition-all', 'duration-200', 'ease-in-out', 'bg-white', 'border', 'border-gray-200', 'rounded-lg', 'shadow', 'dark:border-gray-700', 'dark:bg-gray-800');
 
                             newKnowledgeCard.innerHTML = `
-                    <div class="edit-knowledge cursor-pointer hover:shadow-lg hover:bg-gray-100 dark:hover:bg-gray-700" data-knowledge-id="${data.knowledge_id}" > 
+                    <div class="edit-knowledge cursor-pointer hover:shadow-lg hover:bg-gray-100 dark:hover:bg-gray-700" data-knowledge-id="${data.knowledge_id}" >
                         <div class="flex items-center p-4">
                             <h5 class="ml-2 text-lg font-semibold tracking-tight text-gray-900 dark:text-white">${form.get("title")}</h5>
                         </div>
@@ -324,9 +324,18 @@
                     console.error('Error deleting knowledge:', error);
                 });
         }
+        
+        document.querySelectorAll('.edit-knowledge').forEach(function (link) {
+            link.addEventListener('click', function (event) {
+                event.preventDefault(); // Prevent the default link behavior
 
+                const knowledgeId = this.dataset.knowledgeId;
+                editKnowledge(knowledgeId);
+            });
+        });
         function editKnowledge(knowledgeId) {
             const knowledgeCard = document.querySelector(`[data-knowledge-id="${knowledgeId}"]`);
+            
             const title = knowledgeCard.querySelector('h5').textContent;
             const description = knowledgeCard.querySelector('p').textContent;
 

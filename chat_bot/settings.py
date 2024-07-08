@@ -90,7 +90,7 @@ WEAVIA_HOST = "localhost"
 WEAVIA_PORT = 8081
 COHERE_API_KEY = os.getenv('COHERE_API_KEY')
 SITE_ID = 1
-
+LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'home'
 SOCIALACCOUNT_LOGIN_ON_GET = True
 # TODO: change  email
@@ -156,6 +156,15 @@ DATABASES = {
 
     }
 }
+
+# settings.py
+
+CELERY_BROKER_URL = 'redis://:eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81@localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://:eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81@localhost:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators

@@ -3,7 +3,15 @@ daphne
 weaviate-client
 langchain-weaviate
 langchain-community
+langflow
 Cohere
+llama-index
+llama-index-core
+llama-parse
+llama-index-readers-file
+python-dotenv
+semantic-router
+celery
 crispy-tailwind
 langchainhub
 django~=5.0.4

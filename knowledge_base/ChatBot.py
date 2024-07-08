@@ -1,5 +1,11 @@
 import os
+from semantic_router.encoders import CohereEncoder
+from semantic_router.splitters import RollingWindowSplitter
+
+import requests
 from asgiref.sync import async_to_sync, sync_to_async
+from llama_parse import LlamaParse
+from llama_index.core import SimpleDirectoryReader
 
 from langchain_core.runnables.history import RunnableWithMessageHistory
 
@@ -10,6 +16,7 @@ from langchain.prompts.prompt import PromptTemplate
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_community.chat_message_histories import ChatMessageHistory
 
+from knowledge.models import Knowledge, KnowledgeFile
 from .weaviate_init import WeaviateConnector
 from langchain_cohere.chat_models import ChatCohere
 from langchain_cohere.embeddings import CohereEmbeddings
@@ -19,10 +26,11 @@ from django.conf import settings
 from langchain.chains import ChatVectorDBChain
 from langchain_community.vectorstores import Weaviate
 import weaviate
+from langchain_community.retrievers.weaviate_hybrid_search import WeaviateHybridSearchRetriever
 from langchain_core.output_parsers import StrOutputParser
 from langchain import hub
 from langchain.chains.combine_documents import create_stuff_documents_chain
-
+from langchain.prompts.few_shot import FewShotPromptTemplate
 import asyncio
 
 
@@ -37,19 +45,21 @@ async def get_chat_history(session_id):
 class RAGRetriever:
     def __init__(self):
         self.weaviate_client = WeaviateConnector().get_instance().client
-        self.client = weaviate.Client(
-            "http://localhost:8081",
-            additional_headers={
-                "X-Cohere-Api-Key": settings.COHERE_API_KEY
-            }
-        )
-        self.retriever = Weaviate(self.client,
-                                  "Knowledge_base",
-                                  "answer").as_retriever()
-        self.cohere_model = ChatCohere(cohere_api_key=os.getenv('COHERE_API_KEY'), truncate="AUTO")
-        self.cohere_embeddings = CohereEmbeddings(cohere_api_key=os.getenv('COHERE_API_KEY'))
-        self.cohere_embeddings.model = "command-r"
+        # self.client = weaviate.Client(
+        #     "http://localhost:8081",
+        #     additional_headers={
+        #         "X-Cohere-Api-Key": settings.COHERE_API_KEY
+        #     }
+        # )
+        self.cohere_model = ChatCohere(cohere_api_key=os.getenv('COHERE_API_KEY'))
 
+        self.cohere_embeddings = CohereEmbeddings(cohere_api_key=os.getenv('COHERE_API_KEY'))
+        self.retriever = WeaviateVectorStore(self.weaviate_client, "knowledge_base", "answer"
+                                             , embedding=self.cohere_embeddings).as_retriever()
+
+        self.cohere_embeddings.model = "embed-multilingual-v3.0"
+        self.ocr_url = "https://api.llamacloud.ai/v1/pdf-extract"
+        self.ocr_api_key = os.getenv('OCRENGINE_API_KEY')
         # self.retriever = WeaviateVectorStore(self.weaviate_client,
         #                                      "knowledge_base",
         #                                      "question",
@@ -71,36 +81,43 @@ class RAGRetriever:
     def get_docs(self, query):
         return self.retriever.similarity_search(query)
 
-    # def generate_answer(self, query):
-    #     try:
-    #         # Set up the LangChain Weaviate retriever
-    #         retriever = self.retriever
-    #
-    #         # Set up the prompt template for generating the answer
-    #         prompt_template = """
-    #             Vous êtes assistant pour les tâches de réponses aux questions. Utilisez les éléments de contexte récupérés suivants pour répondre à la question. Si vous ne connaissez pas la réponse, dites simplement que vous ne la savez pas. Utilisez trois phrases maximum et gardez la réponse concise.
-    #
-    #             Question: {question}
-    #
-    #             Context: {contexte}
-    #
-    #             Répondre:
-    #         """
-    #         # prompt = PromptTemplate(template=prompt_template)
-    #         retrival_qa_template = hub.pull("langchain-ai/retrieval-qa-chat")
-    #         retrival_qa_template.format(chat_history=["i am 3 years old"], context="you're a bot", input=query)
-    #         combine = create_stuff_documents_chain(self.cohere_model, retrival_qa_template
-    #                                                , output_parser=StrOutputParser())
-    #         retieval_chain = create_retrieval_chain(self.retriever, combine)
-    #
-    #         # Generate the answer using the RetrievalQA chain
-    #         result = retieval_chain
-    #         return result
-    #
-    #     except Exception as e:
-    #         print(e)
-    #
-    #     return "We are currently facing an issue with our servers. Please try again later."
+    def parse_files(self, knowledge: Knowledge):
+        # TODO: add support for other file types
+        # TODO: config the language to French
+        parser = LlamaParse(
+            api_key=self.ocr_api_key,
+            result_type="markdown"
+        )
+        files = KnowledgeFile.objects.filter(knowledge=knowledge)
+        input_files = [f.file.path for f in files]
+        file_extractor = parser.extract
+        return SimpleDirectoryReader(input_files=input_files, file_extractor=file_extractor, encoding="latin-1",
+                                     raise_on_error=True).load_data()
+
+    def embed_knowledge(self, knowledge: Knowledge, progress_callback=None):
+        encoder = CohereEncoder(cohere_api_key=os.getenv('COHERE_API_KEY'))
+        splitter = RollingWindowSplitter(
+            encoder=encoder,
+            dynamic_threshold=True,
+            min_split_tokens=100,
+            max_split_tokens=500,
+            window_size=2,
+        )
+        str_docs = [d.text for d in self.parse_files(knowledge)]
+        splits = splitter(str_docs)
+        pipeline_chunks = self.weaviate_client.collections.get("pipeline_chunks")
+
+        total_splits = len(splits)
+        with pipeline_chunks.batch.dynamic() as batch:
+            for i, s in enumerate(splits):
+                item = {
+                    "content": s,
+                    "Knowledge_id": knowledge.id
+                }
+                batch.add(item)
+                # Update progress
+                if progress_callback:
+                    progress_callback(i + 1, total_splits)
 
     def generate_answer(self, query):
         try:
@@ -109,11 +126,11 @@ class RAGRetriever:
 
             # Set up the prompt template for generating the answer
             contextualize_q_system_prompt = (
-                "Given a chat history and the latest user question "
-                "which might reference context in the chat history, "
-                "formulate a standalone question which can be understood "
-                "without the chat history. Do NOT answer the question, "
-                "just reformulate it if needed and otherwise return it as is."
+                "Étant donné un hisorique de chat et la dernière question de l'utilisateur "
+                "qui pourrait faire référence au contexte dans l'historique du chat, "
+                "formulez une question autonome qui peut être comprise "
+                "sans l'historique du chat. NE répondez PAS à la question, "
+                "reformulez-la si nécessaire et sinon renvoyez-la telle quelle."
             )
             contextualize_q_prompt = ChatPromptTemplate.from_messages(
                 [
@@ -125,13 +142,15 @@ class RAGRetriever:
             history_aware_retriever = create_history_aware_retriever(
                 self.cohere_model, retriever, contextualize_q_prompt
             )
+
             system_prompt = (
-                "You are an assistant for question-answering tasks. "
-                "Use the following pieces of retrieved context to answer "
-                "the question. If you don't know the answer, say that you "
-                "don't know. Use three sentences maximum and keep the "
-                "answer concise."
+                "Vous êtes un assistant pour les tâches d'assistance technique. "
+                "Utilisez les éléments de contexte récupérés et les exemples fournis pour répondre "
+                "à la question. Si vous ne connaissez pas la réponse, dites-le. "
+                "Utilisez trois phrases maximum et gardez la réponse concise. "
+                "Répondez toujours en français."
                 "\n\n"
+                "Contexte :\n"
                 "{context}"
             )
 
@@ -143,13 +162,18 @@ class RAGRetriever:
                 ]
             )
 
-            # prompt = PromptTemplate(template=prompt_template)
-            combine = create_stuff_documents_chain(self.cohere_model, qa_prompt
-                                                   , output_parser=StrOutputParser())
-            retieval_chain = create_retrieval_chain(history_aware_retriever, combine)
+            # Formatting few-shot examples
 
-            return retieval_chain
+            combine = create_stuff_documents_chain(
+                self.cohere_model,
+                qa_prompt,
+                output_parser=StrOutputParser()
+
+            )
+            retrieval_chain = create_retrieval_chain(history_aware_retriever, combine)
+
+            return retrieval_chain
         except Exception as e:
             print(e)
 
-        return "We are currently facing an issue with our servers. Please try again later."
+        return "Nous rencontrons actuellement un problème avec nos serveurs. Veuillez réessayer plus tard."

@@ -92,7 +92,7 @@
                         <!-- Load More Chats Button -->
                         {% if isChats %}
                             <li>
-                                <button @click.prevent="loadMoreChats()"
+                                <button id="load-more-button"  @click.prevent="loadMoreChats()"
                                         class="group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                                          stroke-width="1.5" stroke="currentColor" class="w-6 h-6">

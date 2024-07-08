@@ -13,11 +13,19 @@ class Pipeline(models.Model):
     )
     name = models.CharField(max_length=255)
     description = models.TextField()
+    is_active = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.name
+
+
+class PipelineProgress(models.Model):
+    pipeline = models.ForeignKey(Pipeline, on_delete=models.CASCADE)
+    progress = models.IntegerField(default=0)
+    status = models.CharField(max_length=50, default='pending')
+    last_updated = models.DateTimeField(auto_now=True)
 
 
 class SimplePipeline(models.Model):
@@ -51,7 +59,6 @@ class ModelConfig(models.Model):
 
 
 class PipelineConfig(models.Model):
-
     embedding_config = models.ForeignKey(EmbeddingConfig, on_delete=models.SET_NULL, related_name='config', null=True)
     model_config = models.ForeignKey(ModelConfig, on_delete=models.SET_NULL, related_name='config', null=True)
     top_k = models.IntegerField(default=0)

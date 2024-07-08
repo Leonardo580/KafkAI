@@ -30,10 +30,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
             # Generate answer asynchronously
             llm_answer = RAGRetriever().generate_answer(message)
             chat_history = await get_chat_history(self.chat_id)
+            print(chat_history)
             # llm_message = await sync_to_async(Message.objects.create)(chat=chat, sender='llm', content=llm_answer)
             llm_message = ""
             # Send the LLM's message to the chat group
-            if llm_answer == "We are currently facing an issue with our servers. Please try again later.":
+            if isinstance(llm_answer, str):
                 await self.send(text_data=json.dumps({
                     'message': llm_answer,
                     'sender': 'llm',

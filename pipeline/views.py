@@ -2,6 +2,11 @@ from django.shortcuts import render, get_object_or_404
 from django.urls import reverse_lazy
 from django.views.generic import ListView
 from django.views.generic.edit import CreateView, FormView, DeleteView
+from django.shortcuts import get_object_or_404
+from django.http import JsonResponse
+from django.views import View
+from .models import Pipeline, PipelineProgress
+from .tasks import launch_pipeline_task
 
 from knowledge.models import Knowledge
 from pipeline.forms import CreateSimplePipelineForm
@@ -16,7 +21,7 @@ class PipelineView(AdminRequiredMixin, ListView):
     context_object_name = 'pipelines'
 
 
-class CreateSimplePipelineView(AdminRequiredMixin,FormView):
+class CreateSimplePipelineView(AdminRequiredMixin, FormView):
     form_class = CreateSimplePipelineForm
     template_name = 'pipeline/create_simple_pipeline.html'
     success_url = reverse_lazy('show_pipeline')  # Replace with your actual success URL
@@ -44,7 +49,7 @@ class CreateSimplePipelineView(AdminRequiredMixin,FormView):
         return super().form_valid(form)
 
 
-class EditSimplePipelineView(AdminRequiredMixin,FormView):
+class EditSimplePipelineView(AdminRequiredMixin, FormView):
     form_class = CreateSimplePipelineForm
     template_name = 'pipeline/update_simple_pipeline.html'
     success_url = reverse_lazy('show_pipeline')  # Replace with your actual success URL
@@ -90,3 +95,20 @@ class DeletePipelineView(AdminRequiredMixin, DeleteView):
     model = Pipeline
     template_name = 'pipeline/delete_pipeline.html'
     success_url = reverse_lazy('show_pipeline')
+
+
+class LaunchPipelineView(View):
+    def get(self, request, pk):
+        pipeline = get_object_or_404(Pipeline, pk=pk)
+        pipeline_progress, created = PipelineProgress.objects.get_or_create(pipeline=pipeline, status='running')
+
+        launch_pipeline_task.delay(pipeline_progress.pk)
+        return JsonResponse({'status': 'Pipeline launched'})
+
+
+class GetProgressView(View):
+    def get(self, request, pk):
+        pipeline = get_object_or_404(Pipeline, pk=pk)
+        current_progress = PipelineProgress.objects.filter(pipeline=pipeline)\
+            .order_by('-last_updated').first()
+        return JsonResponse({'progress': current_progress.progress, 'status': current_progress.status})

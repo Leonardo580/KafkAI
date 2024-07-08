@@ -48,7 +48,7 @@ class MessagePagination(PageNumberPagination):
 
 
 class MessageViewSet(viewsets.ModelViewSet):
-    queryset = Message.objects.all().order_by('-created_at')
+    queryset = Message.objects.all().order_by('-created_at')[::-1]
     serializer_class = MessageSerializer
     pagination_class = MessagePagination
 
@@ -74,10 +74,11 @@ class ChatViewSet(viewsets.ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         user_id = request.user.id
-        queryset = Chat.objects.filter(user_id=user_id).order_by("-created_at")
-        page= self.paginate_queryset(queryset)
+        queryset = Chat.objects.filter(user_id=user_id).order_by("-created_at")[10::]
+
+        page = self.paginate_queryset(queryset)
         if page is not None:
-            serializer= self.get_serializer(page, many=True)
+            serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)

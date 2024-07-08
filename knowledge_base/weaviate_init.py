@@ -21,7 +21,6 @@ class WeaviateConnector:
                                                 headers={
                                                     "X-Cohere-Api-Key": settings.COHERE_API_KEY
                                                 })
-        self.wiki_wiki = wikipediaapi.Wikipedia(language='fr', user_agent="mozilla")  # French Wikipedia
 
     def __del__(self):
         self.client.close()
@@ -95,6 +94,34 @@ class WeaviateConnector:
                             name="tags",
                             description="The tags associated with the knowledge base entry",
                             target_collection="tags"
+                        )
+                    ]
+                )
+            if self.client.collections.exists("pipeline_embeddings"):
+                self.client.collections.delete("pipeline_embeddings")
+                pipeline_embeddings = self.client.collections.create(
+                    name="pipeline_chunks",
+                    description="Embeddings for pipeline",
+                    vectorizer_config=wvc.config.Configure.Vectorizer.text2vec_cohere(
+                        model="embed-multilingual-v3.0",
+                    ),
+                    reranker_config=wvc.config.Configure.Reranker.cohere(
+                        model="rerank-multilingual-v2.0",
+                    ),
+                    properties=[
+                        wvc.config.Property(
+                            name="content",
+                            description="Embedding of the pipeline",
+                            data_type=wvc.config.DataType.TEXT,
+                            vectorize_property_name=False
+                        ),
+                        wvc.config.Property(
+                            name="Knowledge_id",
+                            description="id of the knowledge base entry",
+                            data_type=wvc.config.DataType.NUMBER,
+                            vectorize_property_name=False,
+                            index_filterable=True,
+                            index_searchable=True
                         )
                     ]
                 )
