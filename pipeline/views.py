@@ -109,6 +109,6 @@ class LaunchPipelineView(View):
 class GetProgressView(View):
     def get(self, request, pk):
         pipeline = get_object_or_404(Pipeline, pk=pk)
-        current_progress = PipelineProgress.objects.filter(pipeline=pipeline)\
+        current_progress = PipelineProgress.objects.filter(pipeline=pipeline) \
             .order_by('-last_updated').first()
         return JsonResponse({'progress': current_progress.progress, 'status': current_progress.status})

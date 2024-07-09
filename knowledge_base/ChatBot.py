@@ -1,7 +1,5 @@
 import os
-from semantic_router.encoders import CohereEncoder
-from semantic_router.splitters import RollingWindowSplitter
-
+from langchain_experimental.text_splitter import SemanticChunker
 import requests
 from asgiref.sync import async_to_sync, sync_to_async
 from llama_parse import LlamaParse
@@ -81,40 +79,35 @@ class RAGRetriever:
     def get_docs(self, query):
         return self.retriever.similarity_search(query)
 
-    def parse_files(self, knowledge: Knowledge):
+    def parse_files(self, knowledge):
         # TODO: add support for other file types
         # TODO: config the language to French
         parser = LlamaParse(
             api_key=self.ocr_api_key,
             result_type="markdown"
         )
-        files = KnowledgeFile.objects.filter(knowledge=knowledge)
+        files = []
+        for k in knowledge:
+            files.extend(KnowledgeFile.objects.filter(knowledge=k))
         input_files = [f.file.path for f in files]
-        file_extractor = parser.extract
+        file_extractor = {".pdf": parser, ".doc": parser, ".docx": parser}
         return SimpleDirectoryReader(input_files=input_files, file_extractor=file_extractor, encoding="latin-1",
                                      raise_on_error=True).load_data()
 
-    def embed_knowledge(self, knowledge: Knowledge, progress_callback=None):
-        encoder = CohereEncoder(cohere_api_key=os.getenv('COHERE_API_KEY'))
-        splitter = RollingWindowSplitter(
-            encoder=encoder,
-            dynamic_threshold=True,
-            min_split_tokens=100,
-            max_split_tokens=500,
-            window_size=2,
-        )
+    def embed_knowledge(self, knowledge, pipeline_id, progress_callback=None):
+        text_splitter = SemanticChunker(self.cohere_embeddings)
         str_docs = [d.text for d in self.parse_files(knowledge)]
-        splits = splitter(str_docs)
+        docs = text_splitter.create_documents(str_docs)
         pipeline_chunks = self.weaviate_client.collections.get("pipeline_chunks")
 
-        total_splits = len(splits)
+        total_splits = len(docs)
         with pipeline_chunks.batch.dynamic() as batch:
-            for i, s in enumerate(splits):
+            for i, s in enumerate(docs):
                 item = {
-                    "content": s,
-                    "Knowledge_id": knowledge.id
+                    "content": s.page_content,
+                    "Knowledge_id": pipeline_id
                 }
-                batch.add(item)
+                batch.add_object(item)
                 # Update progress
                 if progress_callback:
                     progress_callback(i + 1, total_splits)

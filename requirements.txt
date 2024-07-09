@@ -6,6 +6,7 @@ langchain-community
 langflow
 Cohere
 llama-index
+langchain_experimental
 llama-index-core
 llama-parse
 llama-index-readers-file

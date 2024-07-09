@@ -40,6 +40,7 @@ class ChatDetailView(View):
         # chat_id = self.kwargs.get('id')
         chat = Chat.objects.get(id=id)
         messages = chat.messages.order_by('-created_at').reverse()[:10]
+        pi
         return render(request, 'chats/chat_detail.html', {'messages': messages})
 
 
