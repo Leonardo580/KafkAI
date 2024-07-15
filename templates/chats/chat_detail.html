@@ -3,7 +3,11 @@
 <!-- Prompt Messages Container -->
 <div class="flex h-[80vh] w-full flex-col mx-2" id="{{ chat_id }}">
     <!-- Top bar with select option -->
-
+    <div class="flex justify-end mb-2">
+        <div  class="rounded-lg bg-slate-200 p-2 text-sm text-slate-900 dark:bg-slate-800 dark:text-slate-300">
+            Current topic: <strong> {{ pipeline_name }}</strong>
+        </div>
+    </div>
     <!-- Prompt Messages -->
     <div id="chat-messages" class="flex-1 overflow-y-auto rounded-xl bg-slate-200 p-4 text-sm leading-6 text-slate-900 dark:bg-slate-800 dark:text-slate-300 sm:text-base sm:leading-7">
         {% for message in messages %}
@@ -38,7 +42,7 @@
         <div id="scroll-trigger"></div>
     </div>
     <!-- Prompt message input -->
-    {% if current_pipeline %}
+    {% if pipeline_name %}
         <form id="chat-form" class="mt-2">
             <label for="chat-input" class="sr-only">Enter your prompt</label>
             <div class="relative">

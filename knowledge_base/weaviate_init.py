@@ -27,8 +27,8 @@ class WeaviateConnector:
 
     def create_schema(self):
         try:
-            if self.client.collections.exists("tags"):
-                self.client.collections.delete("tags")
+            if not self.client.collections.exists("tags"):
+                # self.client.collections.delete("tags")
                 tags = self.client.collections.create(
                     name="tags",
                     description="A tag for categorizing knowledge base entries",
@@ -45,8 +45,8 @@ class WeaviateConnector:
                     ]
                 )
 
-            if self.client.collections.exists("knowledge_base"):
-                self.client.collections.delete("knowledge_base")
+            if not self.client.collections.exists("knowledge_base"):
+                # self.client.collections.delete("knowledge_base")
                 k = self.client.collections.create(
                     name="knowledge_base",
                     description="A knowledge base entry",
@@ -97,34 +97,33 @@ class WeaviateConnector:
                         )
                     ]
                 )
-            if self.client.collections.exists("pipeline_embeddings"):
-                self.client.collections.delete("pipeline_embeddings")
-                pipeline_embeddings = self.client.collections.create(
-                    name="pipeline_chunks",
-                    description="Embeddings for pipeline",
-                    vectorizer_config=wvc.config.Configure.Vectorizer.text2vec_cohere(
-                        model="embed-multilingual-v3.0",
-                    ),
-                    reranker_config=wvc.config.Configure.Reranker.cohere(
-                        model="rerank-multilingual-v2.0",
-                    ),
-                    properties=[
-                        wvc.config.Property(
-                            name="content",
-                            description="Embedding of the pipeline",
-                            data_type=wvc.config.DataType.TEXT,
-                            vectorize_property_name=False
-                        ),
-                        wvc.config.Property(
-                            name="Knowledge_id",
-                            description="id of the knowledge base entry",
-                            data_type=wvc.config.DataType.NUMBER,
-                            vectorize_property_name=False,
-                            index_filterable=True,
-                            index_searchable=True
-                        )
-                    ]
-                )
+            # if self.client.collections.exists("pipeline_chunks"):
+            #     self.client.collections.delete("pipeline_chunks")
+            #     pipeline_embeddings = self.client.collections.create(
+            #         name="pipeline_chunks",
+            #         description="Embeddings for pipeline",
+            #         vectorizer_config=wvc.config.Configure.Vectorizer.text2vec_cohere(
+            #             model="embed-multilingual-v3.0",
+            #         ),
+            #         reranker_config=wvc.config.Configure.Reranker.cohere(
+            #             model="rerank-multilingual-v2.0",
+            #         ),
+            #         properties=[
+            #             wvc.config.Property(
+            #                 name="content",
+            #                 description="Embedding of the pipeline",
+            #                 data_type=wvc.config.DataType.TEXT,
+            #                 vectorize_property_name=False
+            #             ),
+            #             wvc.config.Property(
+            #                 name="Knowledge_id",
+            #                 description="id of the knowledge base entry",
+            #                 data_type=wvc.config.DataType.NUMBER,
+            #                 vectorize_property_name=False,
+            #                 index_filterable=True,
+            #             )
+            #         ]
+            #     )
             print("Tags created: ")
             print("Knowledge base created: ")
         except Exception as e:

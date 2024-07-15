@@ -6,13 +6,14 @@ from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
 from django.views import View
 from .models import Pipeline, PipelineProgress
+from .serializers import PipelineSerializer
 from .tasks import launch_pipeline_task
-
+from rest_framework import viewsets
 from knowledge.models import Knowledge
 from pipeline.forms import CreateSimplePipelineForm
 from pipeline.models import Pipeline, SimplePipeline, PipelineConfig
 from users.views import AdminRequiredMixin
-
+from rest_framework.response import  Response
 
 # Create your views here.
 class PipelineView(AdminRequiredMixin, ListView):
@@ -112,3 +113,12 @@ class GetProgressView(View):
         current_progress = PipelineProgress.objects.filter(pipeline=pipeline) \
             .order_by('-last_updated').first()
         return JsonResponse({'progress': current_progress.progress, 'status': current_progress.status})
+
+
+class GetPipelinesView(viewsets.ModelViewSet):
+    serializer_class = PipelineSerializer
+    queryset = Pipeline.objects.filter(is_active=True).order_by('name')
+    def list(self, request, *args, **kwargs):
+        query = self.get_queryset()
+        serializer =self.get_serializer(query, many=True)
+        return Response(serializer.data)

@@ -13,5 +13,11 @@ urlpatterns = [
     path('api/<int:id>/', views.ChatDetailView.as_view(), name='api_chat'),
     path('api/messages/<int:chat_id>/', include(default_router.urls)),
     re_path(r'^api/chats/', views.ChatViewSet.as_view({'get': 'list'}), name='api_chat_pagination'),
+    path('<int:chat_id>/invoke/', views.invoke, name='invoke'),
+    path('<int:chat_id>/stream/', views.stream, name='stream'),
+    path('<int:chat_id>/input_schema/', views.input_schema, name='input_schema'),
+    path('<int:chat_id>/output_schema/', views.output_schema, name='output_schema'),
+    path('<int:chat_id>/config_schema/', views.config_schema, name='config_schema'),
+    path('create_chat/', views.create_chat, name='create_chat'),
 
 ]

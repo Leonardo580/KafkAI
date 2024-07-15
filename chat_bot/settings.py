@@ -27,7 +27,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["192.168.1.29", "localhost", "192.168.101.38"]
+ALLOWED_HOSTS = ["192.168.1.29", "localhost", "192.168.101.38", "localhost:3000"]
 
 # Application definition
 
@@ -53,6 +53,8 @@ INSTALLED_APPS = [
     "pipeline.apps.PipelineConfig",
     "knowledge.apps.KnowledgeConfig",
     "django_select2",
+    'langserve',
+    'corsheaders',
     # "rest_framework_simple_api_key",
 
     # 'compressor',
@@ -63,6 +65,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -71,6 +74,9 @@ MIDDLEWARE = [
     "allauth.account.middleware.AccountMiddleware",
 
 ]
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+
 
 AUTHENTICATION_BACKENDS = [
     # Needed to log in by username in Django admin, regardless of `allauth`
@@ -81,9 +87,12 @@ AUTHENTICATION_BACKENDS = [
 
 ASGI_APPLICATION = "chat_bot.asgi.application"
 CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels.layers.InMemoryChannelLayer'
-    }
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("redis://:eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81@127.0.0.1:6379/0")],
+        },
+    },
 }
 
 WEAVIA_HOST = "localhost"

@@ -2,7 +2,7 @@ let ongoingStream = null;
 const responses = []; // Store responses here
 let idCounter = 0; // Unique ID counter for bot messages
 
-function createNewChat() {
+function createChatWithPipeline(pipelineId) {
     const chatHistoryList = document.querySelector('.chat-history-list');
     const newChatEntry = document.createElement('li');
     newChatEntry.classList.add('list-item-styles', 'cursor-pointer');
@@ -17,20 +17,38 @@ function createNewChat() {
             </svg> New Chat`;
 
     newChatEntry.appendChild(anchor);
+
     chatHistoryList.children.item(0).insertAdjacentElement("afterend", newChatEntry);
-    fetch(chat_form_url)
+    fetch(`${chat_form_url}?pipeline_id=${pipelineId}`)
         .then(response => response.text())
         .then(data => {
             const contentBlock = document.querySelector('#main');
             contentBlock.innerHTML = data;
             const chat_id = contentBlock.children.item(0).id;
+             anchor.setAttribute('x-bind:class', `{ 'bg-blue-500 text-white': selectedChat === ${chat_id} }`);
+                anchor.setAttribute('x-on:click.prevent', `selectedChat = ${chat_id}`);
+
             anchor.addEventListener('click', () => {
-
                 initializeChat(chat_id);
-
             });
         })
         .catch(error => console.error(error));
+}
+
+function createNewChat() {
+     const pipelineModal = document.getElementById('pipeline-modal');
+    pipelineModal.classList.remove('hidden');
+
+    const confirmButton = document.getElementById('confirm-pipeline');
+    const cancelButton = document.getElementById('cancel-pipeline');
+    confirmButton.addEventListener('click', () => {
+    const selectedPipelineId = document.getElementById('pipeline-select').value;
+        pipelineModal.classList.add('hidden');
+        createChatWithPipeline(selectedPipelineId);
+    });
+    cancelButton.addEventListener('click', () => {
+        pipelineModal.classList.add('hidden');
+    });
 
 }
 
@@ -59,13 +77,20 @@ function initializeChat(chatId) {
     chatSocket.onmessage = function (e) {
         const data = JSON.parse(e.data);
         const chunk = JSON.parse(data.message);
-        if (data.sender === 'llm' && chunk.event === 'on_parser_stream') {
-            updateBotMessage(chunk.data.chunk, ongoingStream.id, chatMessages);
-        } else if (data.sender === 'llm' && chunk.event === 'on_parser_start') {
+        console.log(chunk);
+        if (data.sender === 'llm' && chunk.event === 'on_chain_stream') {
             removeLoadingWidget();
-            ongoingStream = appendBotMessage(chunk.data.chunk, idCounter, chatMessages);
-            idCounter++;
+            ongoingStream = appendBotMessage("", idCounter, chatMessages);
+            console.log(chunk.data.chunk.generation);
+            updateBotMessage(chunk.data.chunk.generation, ongoingStream.id, chatMessages);
         }
+        /*else if (data.sender === 'llm' && chunk.event === 'on_chain_start') {
+            removeLoadingWidget();
+            if ("generation" in chunk.data.chunk) {
+                ongoingStream = appendBotMessage("", idCounter, chatMessages);
+                idCounter++;
+            }
+        }*/
     };
 
     chatSocket.onclose = function (e) {
@@ -316,3 +341,27 @@ function removeLoadingWidget() {
         loadingWidget.remove();
     }
 }
+
+
+
+// const myCustomAdapter = {
+//     streamText: (message, observer) => {
+//         const socket = new WebSocket('https://pynlux.api.nlkit.com/pirate-speak');
+//
+//         // We register listeners for the WebSocket events here
+//         // and call the observer methods accordingly
+//         socket.onmessage = (event) => observer.next(event.data);
+//         socket.onclose = () => observer.complete();
+//         socket.onerror = (error) => void
+//
+//         // This is where we send the user message to the API
+//         socket.send(message);
+//     }
+// }
+//
+// import {createAiChat} from '@nlux/core';
+//
+// const aiChat = createAiChat().withAdapter(myCustomAdapter);
+// const root = document.getElementById('chat-element');
+//
+// aiChat.mount(root);
