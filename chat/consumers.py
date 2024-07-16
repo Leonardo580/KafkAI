@@ -1,14 +1,20 @@
 import json
+import pprint
+
 from asgiref.sync import sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 from chat.models import Chat, Message
-from knowledge_base.ChatBot import RAGRetriever, get_chat_history
+from knowledge_base.ChatBot import RAGRetriever, get_chat_history, LangGraphSingleton
 from weaviate.classes.query import Filter
 from langchain.load.dump import dumps
 from langchain.schema import runnable
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.llm_answer = LangGraphSingleton.get_instance().app
+
     async def connect(self):
         self.chat_id = self.scope['url_route']['kwargs']['chat_id']
         self.chat_group_name = f'chat_{self.chat_id}'
@@ -17,13 +23,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.chat_group_name,
             self.channel_name
         )
-        rag_retriever = RAGRetriever()
         chat = await Chat.objects.aget(id=self.chat_id)
         pipeline_id = await sync_to_async(lambda: chat.pipeline.id)()
-        filters = Filter.by_property("knowledge_id").equal(pipeline_id)
-        rag_retriever.set_custom_retriever("pipeline_chunks", "content", filters)
-        self.llm_answer = RAGRetriever().build_pipeline_flow()
-
+        LangGraphSingleton.get_instance().rag_retriever.update_retriever("pipeline_chunks", "content", pipeline_id)
         await self.accept()
 
     async def receive(self, text_data):
@@ -81,10 +83,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
                                 'sender': 'llm',
                             }))
                     llm_message = chunk
-                if llm_message["data"].get("output", "") != "":
-                    llm_message = llm_message["data"].get("output", "").get("generation", "")
-                else:
-                    llm_message = llm_message["data"].get("llm_fallback", "").get("generation", "")
+                pprint.pprint(llm_message)
+                llm_message = find_key(llm_message, "generation")
+                print(llm_message)
                 await sync_to_async(Message.objects.create)(chat=chat, sender='llm', content=llm_message)
 
     async def handle_invoke(self, data):
@@ -148,3 +149,19 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'message': message,
             'sender': sender,
         }))
+
+
+def find_key(d, key_to_find):
+    if key_to_find in d:
+        return d[key_to_find]
+    for k, v in d.items():
+        if isinstance(v, dict):
+            result = find_key(v, key_to_find)
+            if result is not None:
+                return result
+        elif isinstance(v, list):
+            for item in v:
+                result = find_key(item, key_to_find)
+                if result is not None:
+                    return result
+    return None

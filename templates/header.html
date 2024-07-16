@@ -4,6 +4,7 @@
 <html lang="en">
 <head>
     {% load static %}
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script  src="{% static "home.js" %}"></script>
     <meta charset="utf-8"/>
     <meta content="IE=edge" http-equiv="X-UA-Compatible"/>
@@ -14,6 +15,8 @@
     <link href="{% static 'favicon.ico' %}" rel="icon"/>
     <link href="{% static 'style.css' %}" rel="stylesheet"/>
     <script src="https://cdn.tailwindcss.com"></script>
+    
+
 </head>
 <body :class="{'dark text-bodydark bg-boxdark-2': darkMode === true}"
       x-data="{ page: 'ecommerce', 'loaded': true, 'darkMode': true, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false }"
@@ -361,12 +364,12 @@
 
         <!-- ===== Main Content End ===== -->
         <!-- ===== Page Wrapper End ===== -->
+    
         <script type="application/javascript">
             const chat_form_url = "{% url 'create_chat' %}";
             const avatar_url = "{% static profile.avatar.url %}"
             const bot_avatar_url = "{% static 'images/bot.jpeg' %}";
             const api_chat_pagination = '{% url 'api_chat_pagination' %}';
-
             document.addEventListener('DOMContentLoaded', () => {
                 fetch('/pipeline/list/')
                     .then(response => response.json())

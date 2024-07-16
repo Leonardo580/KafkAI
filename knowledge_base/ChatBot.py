@@ -1,5 +1,8 @@
 import os
 from pprint import pprint
+from langchain_core.runnables.graph import CurveStyle, MermaidDrawMethod, NodeColors
+
+from langchain_community.utilities.tavily_search import TavilySearchAPIWrapper
 from langgraph.graph import END, StateGraph, START
 from langchain.tools.retriever import create_retriever_tool
 # from langchain.tools.tavily_search import TavilySearchResults
@@ -42,6 +45,7 @@ from langchain_community.vectorstores import Weaviate
 import weaviate
 from langchain_community.retrievers.weaviate_hybrid_search import WeaviateHybridSearchRetriever
 from langchain_core.output_parsers import StrOutputParser
+from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain import hub
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.prompts.few_shot import FewShotPromptTemplate
@@ -81,39 +85,39 @@ class RAGRetriever:
                                             , cohere_api_key=os.getenv('COHERE_API_KEY'))
                                  .bind(preamble=rag_preamble))
 
-        grad_preamble = """You are a grader assessing relevance of a retrieved document to a user question. \n
-        If the document contains keyword(s) or semantic meaning related to the user question, grade it as relevant. \n
-        Give a binary score 'yes' or 'no' score to indicate whether the document is relevant to the question."""
+        grad_preamble = """Vous êtes un évaluateur évaluant la pertinence d'un document récupéré par rapport à une question d'utilisateur. \n
+        Si le document contient des mots-clés ou une signification sémantique liés à la question de l'utilisateur, évaluez-le comme pertinent. \n
+        Donnez une note binaire 'yes' ou 'no' pour indiquer si le document est pertinent par rapport à la question."""
         self.grad_llm = ChatCohere(model="command-r", temprature=0, cohere_api_key=os.getenv('COHERE_API_KEY'))
         structured_llm_grader = self.grad_llm.with_structured_output(GradeDocuments, preamble=grad_preamble)
         grad_prompt = ChatPromptTemplate.from_messages(
-            [("human", "Retrieved document: \n\n {document} \n\n User question: {question}"), ]
+            [("human", "Document récupéré : \n\n {document} \n\n Question de l'utilisateur : {question}"), ]
         )
-        route_preamble = """You are an expert at routing a user question to a vectorstore or web search.
-        The vectorstore contains documents related to agents, prompt engineering, and adversarial attacks.
-        Use the vectorstore for questions on these topics. Otherwise, use web-search."""
+        self.route_preamble = """Vous êtes un expert en routage de questions utilisateur vers un vectorstore ou une recherche Web.
+        Le vectorstore contient des documents liés aux agents, à l'ingénierie des invites et aux attaques adversariales.
+        Utilisez le vectorstore pour les questions sur ces sujets. Sinon, utilisez la recherche Web."""
         self.route_llm = ChatCohere(model="command-r", temprature=0, cohere_api_key=os.getenv('COHERE_API_KEY'))
         route_prompt = ChatPromptTemplate.from_messages(
             ("human", "{question}"),
         )
-        preamble = """You are a grader assessing whether an LLM generation is grounded in / supported by a set of retrieved facts. \n
-        Give a binary score 'yes' or 'no'. 'Yes' means that the answer is grounded in / supported by the set of facts."""
+        preamble = """Vous êtes un évaluateur évaluant si une génération LLM est fondée sur / soutenue par un ensemble de faits récupérés. \n
+        Donnez une note binaire 'yes' ou 'no'. 'yes' signifie que la réponse est fondée sur / soutenue par l'ensemble des faits."""
         self.hallucination_llm = ChatCohere(model="command-r", temprature=0, cohere_api_key=os.getenv('COHERE_API_KEY'))
         structured_llm_hallucination = self.hallucination_llm.with_structured_output(
             GradeDocuments, preamble=preamble
         )
         hallucination_prompt = ChatPromptTemplate.from_messages(
-            ("human", "Set of facts: \n\n {documents} \n\n LLM generation: {generation}"),
+            ("human", "Ensemble de faits : \n\n {documents} \n\n Génération LLM : {generation}"),
         )
-        preamble = """You are a grader assessing whether an answer addresses / resolves a question \n
-        Give a binary score 'yes' or 'no'. Yes' means that the answer resolves the question."""
+        preamble = """Vous êtes un évaluateur évaluant si une réponse répond / résout une question \n
+        Donnez une note binaire 'yes' ou 'no'. 'yes' signifie que la réponse résout la question."""
         self.answer_grader_llm = ChatCohere(model="command-r", temprature=0, cohere_api_key=os.getenv('COHERE_API_KEY'))
         structured_llm_answer_grader = self.answer_grader_llm.with_structured_output(
             GradeAnswer, preamble=preamble
         )
         answer_prompt = ChatPromptTemplate.from_messages(
             [
-                ("human", "User question: \n\n {question} \n\n LLM generation: {generation}"),
+                ("human", "Question de l'utilisateur : \n\n {question} \n\n Génération LLM : {generation}"),
             ]
         )
 
@@ -127,20 +131,16 @@ class RAGRetriever:
                                              "content",
                                              embedding=self.cohere_embeddings)
 
-        retiever_tool = create_retriever_tool(
-            self.retriever.as_retriever(),
-            "retrieve_from_weaviate",
-            "Search and return the docs from submitted pdf",
-        )
-        structured_llm_route = self.route_llm.bind_tools(
-            tools=[web_search, retiever_tool], preamble=route_preamble
-        )
+        self._update_structured_llm_route()
+
         self.rag_weaviate = self.weaviate_client.collections.get("knowledge_base")
         self.llm_chain = self.prompt | self.cohere_model | StrOutputParser()
         self.rag_chain = self.rag_prompt | self.rag_cohere_model | StrOutputParser()
         self.retrieval_grader = grad_prompt | structured_llm_grader
-        self.web_search_tool = TavilySearchAPIRetriever(api_key=os.getenv('TAVILY_API_KEY'))
-        self.question_router = route_prompt | structured_llm_route
+        self.web_search_tool = TavilySearchResults()
+        self.web_search_tool.api_wrapper = TavilySearchAPIWrapper()
+
+        self.question_router = route_prompt | self.structured_llm_route
         self.hallucination_grader = hallucination_prompt | structured_llm_hallucination
         self.answer_grader = answer_prompt | structured_llm_answer_grader
 
@@ -209,29 +209,22 @@ class RAGRetriever:
         except Exception as e:
             print(e)
 
-    def set_custom_retriever(self, index_name, text_name, filters=None):
-        self.retriever = WeaviateVectorStore(self.weaviate_client, index_name, text_name
-                                             , embedding=self.cohere_embeddings).as_retriever(
-            search_kwargs={"filters": filters}
+    def update_retriever(self, index_name, text_name, filters=None):
+        self.retriever = WeaviateVectorStore(self.weaviate_client, index_name, text_name,
+                                             embedding=self.cohere_embeddings)
+        self._update_structured_llm_route(filters)
+
+    def _update_structured_llm_route(self, filters=None):
+        retriever_tool = create_retriever_tool(
+            self.retriever.as_retriever(
+                search_kwargs={"filters": filters}
+            ),
+            "retrieve_from_weaviate",
+            "Recherchez et renvoyez les documents du PDF soumis",
         )
-
-    def generate_answer(self):
-        try:
-            retriever = self.retriever
-            prompt = hub.pull("rlm/rag-prompt")
-
-            format_doc = lambda docs: "\n\n".join([d.page_content for d in docs])
-            rag_chain = (
-                    {"context": retriever, "question": RunnablePassthrough()}
-                    | prompt
-                    | self.cohere_model
-                    | StrOutputParser()
-            )
-            return rag_chain
-        except Exception as e:
-            print(e)
-
-        return "Nous rencontrons actuellement un problème avec nos serveurs. Veuillez réessayer plus tard."
+        self.structured_llm_route = self.route_llm.bind_tools(
+            tools=[web_search, retriever_tool], preamble=self.route_preamble
+        )
 
     def retrieve(self, state):
 
@@ -306,7 +299,8 @@ class RAGRetriever:
             score = self.retrieval_grader.invoke(
                 {"question": question, "document": d.page_content}
             )
-            grade = "yes"
+            grade = "no"
+            print(f"score : {score}")
             if score:
                 grade = score.binary_score
             if grade == "yes":
@@ -332,7 +326,7 @@ class RAGRetriever:
         question = state["question"]
 
         # Web search
-        docs = self.web_search_tool.invoke(question)
+        docs = self.web_search_tool.invoke({"query": question})
         web_results = "\n".join([d["content"] for d in docs])
         web_results = Document(page_content=web_results)
 
@@ -485,6 +479,7 @@ class RAGRetriever:
         print("compiled successfully")
         return app
 
+
 class GraphState(TypedDict):
     """|
     Represents the state of our graph.
@@ -538,3 +533,22 @@ class GradeAnswer(BaseModel):
     binary_score: str = Field(
         description="Answer addresses the question, 'yes' or 'no'"
     )
+
+
+class LangGraphSingleton:
+    _instance = None
+
+    @staticmethod
+    def get_instance():
+        if LangGraphSingleton._instance is None:
+            LangGraphSingleton()
+
+        return LangGraphSingleton._instance
+
+    def __init__(self):
+        if LangGraphSingleton._instance is not None:
+            raise Exception("This class is a singleton!")
+        else:
+            self.rag_retriever = RAGRetriever()
+            self.app = self.rag_retriever.build_pipeline_flow()
+            LangGraphSingleton._instance = self

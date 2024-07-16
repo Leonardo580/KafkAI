@@ -1,6 +1,8 @@
 let ongoingStream = null;
 const responses = []; // Store responses here
 let idCounter = 0; // Unique ID counter for bot messages
+let isWebSocketConnected = false; // Flag to track WebSocket connection status
+const marked = window.marked || require('marked');
 
 function createChatWithPipeline(pipelineId) {
     const chatHistoryList = document.querySelector('.chat-history-list');
@@ -25,8 +27,8 @@ function createChatWithPipeline(pipelineId) {
             const contentBlock = document.querySelector('#main');
             contentBlock.innerHTML = data;
             const chat_id = contentBlock.children.item(0).id;
-             anchor.setAttribute('x-bind:class', `{ 'bg-blue-500 text-white': selectedChat === ${chat_id} }`);
-                anchor.setAttribute('x-on:click.prevent', `selectedChat = ${chat_id}`);
+            anchor.setAttribute('x-bind:class', `{ 'bg-blue-500 text-white': selectedChat === ${chat_id} }`);
+            anchor.setAttribute('x-on:click.prevent', `selectedChat = ${chat_id}`);
 
             anchor.addEventListener('click', () => {
                 initializeChat(chat_id);
@@ -36,13 +38,13 @@ function createChatWithPipeline(pipelineId) {
 }
 
 function createNewChat() {
-     const pipelineModal = document.getElementById('pipeline-modal');
+    const pipelineModal = document.getElementById('pipeline-modal');
     pipelineModal.classList.remove('hidden');
 
     const confirmButton = document.getElementById('confirm-pipeline');
     const cancelButton = document.getElementById('cancel-pipeline');
     confirmButton.addEventListener('click', () => {
-    const selectedPipelineId = document.getElementById('pipeline-select').value;
+        const selectedPipelineId = document.getElementById('pipeline-select').value;
         pipelineModal.classList.add('hidden');
         createChatWithPipeline(selectedPipelineId);
     });
@@ -70,10 +72,23 @@ function initializeChat(chatId) {
     const Form = document.getElementById('chat-form');
     const chatInput = document.getElementById('chat-input');
     const chatMessages = document.getElementById('chat-messages');
+
+    // Show loading widget until WebSocket connection is established
+    showLoadingWidget(chatMessages);
+
     const chatSocket = new WebSocket(
         'ws://' + window.location.host +
         '/ws/chat/' + chatId + '/'
     );
+
+    // Handle WebSocket connection open
+    chatSocket.onopen = function (e) {
+        isWebSocketConnected = true;
+        updateSubmitButtonState();
+        removeLoadingWidget(); // Remove loading widget once connected
+    };
+
+    // Handle WebSocket message
     chatSocket.onmessage = function (e) {
         const data = JSON.parse(e.data);
         const chunk = JSON.parse(data.message);
@@ -83,23 +98,26 @@ function initializeChat(chatId) {
             ongoingStream = appendBotMessage("", idCounter, chatMessages);
             console.log(chunk.data.chunk.generation);
             updateBotMessage(chunk.data.chunk.generation, ongoingStream.id, chatMessages);
+            idCounter++;
         }
-        /*else if (data.sender === 'llm' && chunk.event === 'on_chain_start') {
-            removeLoadingWidget();
-            if ("generation" in chunk.data.chunk) {
-                ongoingStream = appendBotMessage("", idCounter, chatMessages);
-                idCounter++;
-            }
-        }*/
     };
 
+    // Handle WebSocket close
     chatSocket.onclose = function (e) {
         console.error('Chat socket closed unexpectedly');
+        isWebSocketConnected = false;
+        updateSubmitButtonState();
         removeLoadingWidget();
     };
 
+    // Form submission handling
     Form.addEventListener('submit', (event) => {
         event.preventDefault();
+
+        if (!isWebSocketConnected) {
+            alert("WebSocket connection is not open. Please try again later.");
+            return;
+        }
 
         const message = chatInput.value.trim();
         if (message) {
@@ -120,6 +138,17 @@ function initializeChat(chatId) {
         }
     });
 }
+
+// Update the submit button state based on WebSocket connection status
+function updateSubmitButtonState() {
+    const submitButton = document.querySelector('#chat-form button[type="submit"]');
+    if (isWebSocketConnected) {
+        submitButton.removeAttribute('disabled');
+    } else {
+        submitButton.setAttribute('disabled', 'disabled');
+    }
+}
+
 function setupInfiniteScroll(chatId) {
     const chatMessages = document.getElementById('chat-messages');
     let currentPage = 1;
@@ -170,7 +199,6 @@ function setupInfiniteScroll(chatId) {
     }
 }
 
-
 function appendUserMessage(message, chatMessages) {
     const userMessageContainer = document.createElement('div');
     userMessageContainer.classList.add('flex', 'flex-row', 'px-2', 'py-4', 'sm:px-4', 'chat-message');
@@ -206,7 +234,7 @@ function appendBotMessage(message, botMessageId, chatMessages) {
 
     const botMessage = document.createElement('p');
     botMessage.classList.add('bot-message-text');
-    botMessage.textContent = message;
+    botMessage.innerHTML = marked.parse(message);  // Render markdown as HTML
 
     botMessageContent.appendChild(botMessage);
     botMessageContainer.appendChild(botAvatar);
@@ -270,7 +298,7 @@ function updateBotMessage(chunk, botMessageId) {
     const botMessageText = botMessageContainer.querySelector('.bot-message-text');
 
     if (botMessageText) {
-        botMessageText.innerHTML += chunk;
+        botMessageText.innerHTML += marked.parse(chunk);
     }
 }
 
@@ -318,6 +346,7 @@ function loadMoreChats() {
             console.error('Error loading more chats:', error)
         });
 }
+
 function showLoadingWidget(chatMessages) {
     const loadingWidget = document.createElement('div');
     loadingWidget.id = 'loading-widget';
@@ -344,24 +373,3 @@ function removeLoadingWidget() {
 
 
 
-// const myCustomAdapter = {
-//     streamText: (message, observer) => {
-//         const socket = new WebSocket('https://pynlux.api.nlkit.com/pirate-speak');
-//
-//         // We register listeners for the WebSocket events here
-//         // and call the observer methods accordingly
-//         socket.onmessage = (event) => observer.next(event.data);
-//         socket.onclose = () => observer.complete();
-//         socket.onerror = (error) => void
-//
-//         // This is where we send the user message to the API
-//         socket.send(message);
-//     }
-// }
-//
-// import {createAiChat} from '@nlux/core';
-//
-// const aiChat = createAiChat().withAdapter(myCustomAdapter);
-// const root = document.getElementById('chat-element');
-//
-// aiChat.mount(root);

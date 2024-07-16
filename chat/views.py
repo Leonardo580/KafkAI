@@ -56,9 +56,8 @@ class ChatDetailView(View):
         # chat_id = self.kwargs.get('id')
         chat = Chat.objects.get(id=id)
         pipeline = chat.pipeline
-        messages = chat.messages.order_by('-created_at').reverse()[:10]
-        print(pipeline)
-        return render(request, 'chats/chat_detail.html', {'messages': messages
+        messages = chat.messages.order_by('-created_at')[:10]
+        return render(request, 'chats/chat_detail.html', {'messages': messages[::-1]
             , 'pipeline_name': pipeline.name if pipeline else None})
 
 
@@ -73,7 +72,7 @@ class MessageViewSet(viewsets.ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         chat_id = kwargs.get('chat_id')
-        queryset = Message.objects.filter(chat_id=chat_id).order_by('-created_at').reverse()
+        queryset = Message.objects.filter(chat_id=chat_id).order_by('created_at')
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)

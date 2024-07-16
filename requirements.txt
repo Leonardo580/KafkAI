@@ -6,6 +6,7 @@ langchain-community
 langflow
 Cohere
 llama-index
+tavily-python
 langchain_experimental
 langgraph~=0.1.6
 llama-index-core
