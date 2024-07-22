@@ -1,7 +1,13 @@
 import os
 from pprint import pprint
+from langchain.chains.history_aware_retriever import create_history_aware_retriever
 from langchain_core.runnables.graph import CurveStyle, MermaidDrawMethod, NodeColors
-
+from langgraph.checkpoint.aiosqlite import AsyncSqliteSaver
+from django.conf import settings
+from psycopg_pool import AsyncConnectionPool
+from langchain.retrievers import MergerRetriever
+import pymysql
+import aiomysql
 from langchain_community.utilities.tavily_search import TavilySearchAPIWrapper
 from langgraph.graph import END, StateGraph, START
 from langchain.tools.retriever import create_retriever_tool
@@ -9,9 +15,9 @@ from langchain.tools.retriever import create_retriever_tool
 # from langchain.utilities.tavily_search import TavilySearchAPIWrapper
 from langchain_community.retrievers import TavilySearchAPIRetriever
 from langchain.schema import Document
-from typing import List
+from typing import List, Optional, Tuple
 from langchain_core.pydantic_v1 import BaseModel, Field
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, AIMessage
 from pydantic import SecretStr
 from typing_extensions import TypedDict
 from langchain_core.runnables import RunnablePassthrough
@@ -34,6 +40,7 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_community.chat_message_histories import ChatMessageHistory
 
 from knowledge.models import Knowledge, KnowledgeFile
+from .postgres_saver import PostgresSaver
 from .weaviate_init import WeaviateConnector
 from langchain_cohere import ChatCohere
 from langchain_cohere.embeddings import CohereEmbeddings
@@ -52,12 +59,23 @@ from langchain.prompts.few_shot import FewShotPromptTemplate
 import asyncio
 
 
-async def get_chat_history(session_id):
+async def get_chat_history(session_id, k=10):
     msg_history = await asyncio.get_event_loop().run_in_executor(
         None, lambda: list(
-            Chat.objects.get(id=session_id).messages.all().order_by('created_at').values_list('content', flat=True))
+            Chat.objects.get(id=session_id).messages.all()
+            .order_by('-created_at')[:k]  # Get 10 most recent messages
+            .values_list('sender', 'content')
+        )
     )
-    return msg_history
+
+    return list(map(process_chat_history, reversed(msg_history)))
+
+
+def process_chat_history(msg):
+    if msg[0] == "user":
+        return HumanMessage(content=msg[1])
+    else:
+        return AIMessage(content=msg[1])
 
 
 class RAGRetriever:
@@ -93,12 +111,29 @@ class RAGRetriever:
         grad_prompt = ChatPromptTemplate.from_messages(
             [("human", "Document récupéré : \n\n {document} \n\n Question de l'utilisateur : {question}"), ]
         )
-        self.route_preamble = """Vous êtes un expert en routage de questions utilisateur vers un vectorstore ou une recherche Web.
+        self.route_preamble = """Prendre en compte l'historique de la conversation.Vous êtes un expert en routage de questions utilisateur vers un vectorstore ou une recherche Web.
         Le vectorstore contient des documents liés aux agents, à l'ingénierie des invites et aux attaques adversariales.
         Utilisez le vectorstore pour les questions sur ces sujets. Sinon, utilisez la recherche Web."""
         self.route_llm = ChatCohere(model="command-r", temprature=0, cohere_api_key=os.getenv('COHERE_API_KEY'))
+        history_prompt = """
+        Étant donné un historique de conversation et la dernière question de l'utilisateur qui pourrait se référer au contexte de l'historique de conversation,
+         formulez une question autonome qui peut être comprise sans l'historique de conversation. 
+         Ne répondez PAS à la question, reformulez-la seulement si nécessaire et sinon, renvoyez-la telle quelle.
+        """
+        contextualize_q_prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", history_prompt),
+                MessagesPlaceholder("chat_history"),
+                ("human", "{input}"),
+            ]
+        )
+
         route_prompt = ChatPromptTemplate.from_messages(
-            ("human", "{question}"),
+            [
+                ("system", history_prompt),
+                MessagesPlaceholder("chat_history"),
+                ("human", "{question}"),
+            ]
         )
         preamble = """Vous êtes un évaluateur évaluant si une génération LLM est fondée sur / soutenue par un ensemble de faits récupérés. \n
         Donnez une note binaire 'yes' ou 'no'. 'yes' signifie que la réponse est fondée sur / soutenue par l'ensemble des faits."""
@@ -131,7 +166,15 @@ class RAGRetriever:
                                              "content",
                                              embedding=self.cohere_embeddings)
 
+        self.base_retriever = WeaviateVectorStore(self.weaviate_client,
+                                                  "knowledge_base",
+                                                  "answer",
+                                                  embedding=self.cohere_embeddings)
+
         self._update_structured_llm_route()
+        self.history_aware_retriever = create_history_aware_retriever(
+            self.cohere_model, self.retriever.as_retriever(), contextualize_q_prompt
+        )
 
         self.rag_weaviate = self.weaviate_client.collections.get("knowledge_base")
         self.llm_chain = self.prompt | self.cohere_model | StrOutputParser()
@@ -215,10 +258,11 @@ class RAGRetriever:
         self._update_structured_llm_route(filters)
 
     def _update_structured_llm_route(self, filters=None):
+        merged_retreiver = MergerRetriever(
+            retrievers=[self.base_retriever.as_retriever(),
+                        self.retriever.as_retriever(search_kwargs={"filters": filters}), ])
         retriever_tool = create_retriever_tool(
-            self.retriever.as_retriever(
-                search_kwargs={"filters": filters}
-            ),
+            merged_retreiver,
             "retrieve_from_weaviate",
             "Recherchez et renvoyez les documents du PDF soumis",
         )
@@ -244,39 +288,40 @@ class RAGRetriever:
         return {"documents": documents, "question": question}
 
     def llm_fallback(self, state):
-        """
-        Generate answer using the LLM w/o vectorstore
-
-        Args:
-            state (dict): The current graph state
-
-        Returns:
-            state (dict): New key added to state, generation, that contains LLM generation
-        """
         print("---LLM Fallback---")
         question = state["question"]
-        generation = self.llm_chain.invoke({"question": question})
-        return {"question": question, "generation": generation}
+        chat_history = state["chat_history"]
+
+        # Include chat history in the prompt
+        # history_str = "\n".join([f"Human: {h[0]}\nAI: {h[1]}" for h in chat_history])
+        prompt = f"Chat History:\n{chat_history}\n\nCurrent Question: {question}\n\nAnswer:"
+
+        generation = self.llm_chain.invoke({"question": prompt})
+
+        # Update chat history
+        updated_history = chat_history + [(question, generation)]
+
+        return {"question": question, "generation": generation, "chat_history": updated_history}
 
     def generate(self, state):
-        """
-        Generate answer using the vectorstore
-
-        Args:
-            state (dict): The current graph state
-
-        Returns:
-            state (dict): New key added to state, generation, that contains LLM generation
-        """
         print("---GENERATE---")
         question = state["question"]
         documents = state["documents"]
+        chat_history = state["chat_history"]
+
         if not isinstance(documents, list):
             documents = [documents]
 
-        # RAG generation
-        generation = self.rag_chain.invoke({"documents": documents, "question": question})
-        return {"documents": documents, "question": question, "generation": generation}
+        # Include chat history in the prompt
+        # history_str = "\n".join([f"Human: {h[0]}\nAI: {h[1]}" for h in chat_history])
+        prompt = f"Chat History:\n{chat_history}\n\nCurrent Question: {question}\n\nRelevant Documents:\n{documents}\n\nAnswer:"
+
+        generation = self.rag_chain.invoke({"documents": documents, "question": prompt})
+
+        # Update chat history
+        updated_history = chat_history + [(question, generation)]
+
+        return {"documents": documents, "question": question, "generation": generation, "chat_history": updated_history}
 
     def grade_documents(self, state):
         """
@@ -345,9 +390,11 @@ class RAGRetriever:
             str: Next node to call
         """
 
-        print("---ROUTE QUESTION---")
+        print(f"---ROUTE QUESTION---{state}")
         question = state["question"]
-        source = self.question_router.invoke({"question": question})
+        # print("*****************************",
+        #       self.history_aware_retriever.invoke({"input": question, "chat_history": state["chat_history"]}))
+        source = self.question_router.invoke({"question": question, "chat_history": state["chat_history"]})
 
         # Fallback to LLM or raise error if no decision
         if "tool_calls" not in source.additional_kwargs:
@@ -408,7 +455,7 @@ class RAGRetriever:
         question = state["question"]
         documents = state["documents"]
         generation = state["generation"]
-
+        print(state["generation"])
         score = self.hallucination_grader.invoke(
             {"documents": documents, "generation": generation}
         )
@@ -435,7 +482,7 @@ class RAGRetriever:
             pprint("---DECISION: GENERATION IS NOT GROUNDED IN DOCUMENTS, RE-TRY---")
             return "not supported"
 
-    def build_pipeline_flow(self):
+    async def build_pipeline_flow(self):
         workflow = StateGraph(GraphState)
         workflow.add_node("web_search", self.web_search)  # web search
         workflow.add_node("retrieve", self.retrieve)  # retrieve
@@ -474,25 +521,17 @@ class RAGRetriever:
         )
         workflow.add_edge("llm_fallback", END)
 
-        # Compile
-        app = workflow.compile()
+        memory = AsyncSqliteSaver.from_conn_string(":memory:")
+        app = workflow.compile(checkpointer=memory)
         print("compiled successfully")
         return app
 
 
 class GraphState(TypedDict):
-    """|
-    Represents the state of our graph.
-
-    Attributes:
-        question: question
-        generation: LLM generation
-        documents: list of documents
-    """
-
     question: str
-    generation: str
-    documents: List[str]
+    documents: Optional[List[Document]]
+    generation: Optional[str]
+    chat_history: List[Tuple[str, str]]
 
 
 class GradeDocuments(BaseModel):
@@ -550,5 +589,7 @@ class LangGraphSingleton:
             raise Exception("This class is a singleton!")
         else:
             self.rag_retriever = RAGRetriever()
-            self.app = self.rag_retriever.build_pipeline_flow()
             LangGraphSingleton._instance = self
+
+    async def initialize(self):
+        self.app = await self.rag_retriever.build_pipeline_flow()

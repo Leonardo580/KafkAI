@@ -66,7 +66,8 @@ class MessagePagination(PageNumberPagination):
 
 
 class MessageViewSet(viewsets.ModelViewSet):
-    queryset = Message.objects.all().order_by('-created_at')[::-1]
+    # queryset = Message.objects.all().order_by('-created_at')[::-1]
+    queryset = Message.objects.all().order_by('-created_at')
     serializer_class = MessageSerializer
     pagination_class = MessagePagination
 

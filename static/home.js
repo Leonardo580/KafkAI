@@ -1,9 +1,16 @@
 let ongoingStream = null;
+let currentStepElement = null; // Element to hold the current step message
 const responses = []; // Store responses here
 let idCounter = 0; // Unique ID counter for bot messages
-let isWebSocketConnected = false; // Flag to track WebSocket connection status
-const marked = window.marked || require('marked');
-
+let isWebSocketConnected = true; // Flag to track WebSocket connection status
+const marked = window.marked;
+const user_message = {
+    "__start__": "processing...",
+    "retrieve": "retrieving...",
+    "grade_documents": "grading...",
+    "generate": "generating...",
+    "search": "searching...",
+}
 function createChatWithPipeline(pipelineId) {
     const chatHistoryList = document.querySelector('.chat-history-list');
     const newChatEntry = document.createElement('li');
@@ -27,9 +34,9 @@ function createChatWithPipeline(pipelineId) {
             const contentBlock = document.querySelector('#main');
             contentBlock.innerHTML = data;
             const chat_id = contentBlock.children.item(0).id;
-            anchor.setAttribute('x-bind:class', `{ 'bg-blue-500 text-white': selectedChat === ${chat_id} }`);
-            anchor.setAttribute('x-on:click.prevent', `selectedChat = ${chat_id}`);
-
+             anchor.setAttribute('x-bind:class', `{ 'bg-blue-500 text-white': selectedChat === ${chat_id} }`);
+                anchor.setAttribute('x-on:click.prevent', `selectedChat = ${chat_id}`);
+                initializeChat(chat_id);
             anchor.addEventListener('click', () => {
                 initializeChat(chat_id);
             });
@@ -51,7 +58,6 @@ function createNewChat() {
     cancelButton.addEventListener('click', () => {
         pipelineModal.classList.add('hidden');
     });
-
 }
 
 function chat_messages(chatId) {
@@ -72,10 +78,6 @@ function initializeChat(chatId) {
     const Form = document.getElementById('chat-form');
     const chatInput = document.getElementById('chat-input');
     const chatMessages = document.getElementById('chat-messages');
-
-    // Show loading widget until WebSocket connection is established
-    showLoadingWidget(chatMessages);
-
     const chatSocket = new WebSocket(
         'ws://' + window.location.host +
         '/ws/chat/' + chatId + '/'
@@ -85,20 +87,30 @@ function initializeChat(chatId) {
     chatSocket.onopen = function (e) {
         isWebSocketConnected = true;
         updateSubmitButtonState();
-        removeLoadingWidget(); // Remove loading widget once connected
     };
 
     // Handle WebSocket message
     chatSocket.onmessage = function (e) {
         const data = JSON.parse(e.data);
-        const chunk = JSON.parse(data.message);
-        console.log(chunk);
-        if (data.sender === 'llm' && chunk.event === 'on_chain_stream') {
-            removeLoadingWidget();
-            ongoingStream = appendBotMessage("", idCounter, chatMessages);
-            console.log(chunk.data.chunk.generation);
-            updateBotMessage(chunk.data.chunk.generation, ongoingStream.id, chatMessages);
-            idCounter++;
+        if (data.type === 'progress') {
+            updateSystemMessage(user_message[data.message], chatMessages);
+        } else if (data.sender === 'llm') {
+            const chunk = JSON.parse(data.message);
+            if (chunk.event === 'on_chain_stream') {
+                removeLoadingWidget();
+                currentStepElement.remove()
+                ongoingStream = appendBotMessage("", idCounter, chatMessages);
+
+                updateBotMessage(chunk.data.chunk.generation, ongoingStream.id, chatMessages);
+                idCounter++;
+            }
+            // else if (data.type === 'final_answer') {
+            //     removeLoadingWidget();
+            //     removeSystemMessage();
+            //     appendBotMessage(data.message, idCounter, chatMessages);
+            //     idCounter++;
+            //     ongoingStream = null;
+            // }
         }
     };
 
@@ -148,10 +160,10 @@ function updateSubmitButtonState() {
         submitButton.setAttribute('disabled', 'disabled');
     }
 }
-
+let currentPage = 1;
 function setupInfiniteScroll(chatId) {
     const chatMessages = document.getElementById('chat-messages');
-    let currentPage = 1;
+
     let loading = false;
 
     chatMessages.addEventListener('scroll', () => {
@@ -234,7 +246,7 @@ function appendBotMessage(message, botMessageId, chatMessages) {
 
     const botMessage = document.createElement('p');
     botMessage.classList.add('bot-message-text');
-    botMessage.innerHTML = marked.parse(message);  // Render markdown as HTML
+    botMessage.innerHTML = marked.parse(message);
 
     botMessageContent.appendChild(botMessage);
     botMessageContainer.appendChild(botAvatar);
@@ -242,7 +254,31 @@ function appendBotMessage(message, botMessageId, chatMessages) {
     chatMessages.appendChild(botMessageContainer);
     scrollToBottom();
 
-    return {id: botMessageId};
+    return { id: botMessageId };
+}
+
+function updateSystemMessage(message, chatMessages) {
+    if (!currentStepElement) {
+        currentStepElement = document.createElement('div');
+        currentStepElement.classList.add('mb-4', 'flex', 'justify-center', 'px-2', 'py-6', 'text-gray-500', 'text-sm', 'chat-message');
+
+        const systemMessage = document.createElement('p');
+        systemMessage.textContent = message;
+        currentStepElement.appendChild(systemMessage);
+
+        chatMessages.appendChild(currentStepElement);
+        scrollToBottom();
+    } else {
+        const systemMessage = currentStepElement.querySelector('p');
+        systemMessage.textContent = message;
+    }
+}
+
+function removeSystemMessage() {
+    if (currentStepElement) {
+        currentStepElement.remove();
+        currentStepElement = null;
+    }
 }
 
 function prependUserMessage(message, chatMessages) {
@@ -290,7 +326,7 @@ function prependBotMessage(message, botMessageId, chatMessages) {
     // Prepend the message container to the chatMessages
     chatMessages.insertBefore(botMessageContainer, chatMessages.firstChild);
 
-    return {id: botMessageId};
+    return { id: botMessageId };
 }
 
 function updateBotMessage(chunk, botMessageId) {
@@ -298,7 +334,7 @@ function updateBotMessage(chunk, botMessageId) {
     const botMessageText = botMessageContainer.querySelector('.bot-message-text');
 
     if (botMessageText) {
-        botMessageText.innerHTML += marked.parse(chunk);
+        botMessageText.innerHTML = marked.parse(botMessageText.innerHTML + chunk);
     }
 }
 
@@ -307,17 +343,14 @@ function scrollToBottom() {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
-let chat_page = 1
+let chat_page = 2;
 let hasMoreChats = true;
 
 function loadMoreChats() {
-
-
     const url = `${api_chat_pagination}?page=${chat_page++}`;
     fetch(url)
         .then(response => response.json())
         .then(data => {
-            console.log(data);
             const chatHistoryList = document.querySelector('.chat-history-list');
             data.results.forEach(chat => {
                 const li = document.createElement('li');
@@ -334,7 +367,6 @@ function loadMoreChats() {
                     </a>
                 `;
                 chatHistoryList.insertBefore(li, chatHistoryList.lastElementChild);
-
             });
             this.page++;
             if (!data.next) {
@@ -343,7 +375,7 @@ function loadMoreChats() {
             }
         })
         .catch(error => {
-            console.error('Error loading more chats:', error)
+            console.error('Error loading more chats:', error);
         });
 }
 
@@ -371,5 +403,24 @@ function removeLoadingWidget() {
     }
 }
 
-
-
+// const myCustomAdapter = {
+//     streamText: (message, observer) => {
+//         const socket = new WebSocket('https://pynlux.api.nlkit.com/pirate-speak');
+//
+//         // We register listeners for the WebSocket events here
+//         // and call the observer methods accordingly
+//         socket.onmessage = (event) => observer.next(event.data);
+//         socket.onclose = () => observer.complete();
+//         socket.onerror = (error) => void
+//
+//         // This is where we send the user message to the API
+//         socket.send(message);
+//     }
+// }
+//
+// import {createAiChat} from '@nlux/core';
+//
+// const aiChat = createAiChat().withAdapter(myCustomAdapter);
+// const root = document.getElementById('chat-element');
+//
+// aiChat.mount(root);

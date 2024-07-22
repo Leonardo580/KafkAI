@@ -37,24 +37,82 @@
             filter: drop-shadow(0 0 15px red);
         }
     </style>
-    <div class="bg-gray-100 dark:bg-gray-900">
-        <div class="p-4 mb-4 block sm:flex items-center justify-between border-b border-gray-200 lg:mt-1.5 dark:bg-gray-800">
-            <div class="flex justify-between items-center w-full">
-                <div class="w-full mb-1 ml-4">
-                    <div class="mb-4">
-                        <h1 class="text-xl font-semibold text-gray-900 sm:text-2xl dark:text-white">All Pipelines</h1>
+    <div class="bg-gray-100 dark:bg-gray-900 z-50">
+        <div class="p-4 bg-white block sm:flex items-center justify-between border-b border-gray-200 lg:mt-1.5 dark:bg-gray-800 dark:border-gray-700">
+            <div class="w-full mb-1">
+                <div class="mb-4">
+                    <nav class="flex mb-5" aria-label="Breadcrumb">
+                        <ol class="inline-flex items-center space-x-1 text-sm font-medium md:space-x-2">
+                            <li class="inline-flex items-center">
+                                <a href="/admin_dashboard/"
+                                   class="inline-flex items-center text-gray-700 hover:text-primary-600 dark:text-gray-300 dark:hover:text-white">
+                                    <svg class="w-5 h-5 mr-2.5" fill="currentColor" viewBox="0 0 20 20"
+                                         xmlns="http://www.w3.org/2000/svg" data-darkreader-inline-fill=""
+                                         style="--darkreader-inline-fill: currentColor;">
+                                        <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path>
+                                    </svg>
+                                    Home
+                                </a>
+                            </li>
+                            <li>
+                                <div class="flex items-center">
+                                    <svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20"
+                                         xmlns="http://www.w3.org/2000/svg" data-darkreader-inline-fill=""
+                                         style="--darkreader-inline-fill: currentColor;">
+                                        <path fill-rule="evenodd"
+                                              d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                                              clip-rule="evenodd"></path>
+                                    </svg>
+                                    <a href="{% url 'show_pipeline' %}"
+                                       class="ml-1 text-gray-700 hover:text-primary-600 md:ml-2 dark:text-gray-300 dark:hover:text-white">Pipelines</a>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="flex items-center">
+                                    <svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20"
+                                         xmlns="http://www.w3.org/2000/svg" data-darkreader-inline-fill=""
+                                         style="--darkreader-inline-fill: currentColor;">
+                                        <path fill-rule="evenodd"
+                                              d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                                              clip-rule="evenodd"></path>
+                                    </svg>
+                                    <span class="ml-1 text-gray-400 md:ml-2 dark:text-gray-500"
+                                          aria-current="page">List</span>
+                                </div>
+                            </li>
+                        </ol>
+                    </nav>
+                    <h1 class="text-xl font-semibold text-gray-900 sm:text-2xl dark:text-white">All Pipelines</h1>
+                </div>
+                <div class="sm:flex">
+                    <div class="items-center hidden mb-3 sm:flex sm:divide-x sm:divide-gray-100 sm:mb-0 dark:divide-gray-700">
+                        <form class="lg:pr-3" action="/show_users/" method="GET">
+                            <label for="users-search" class="sr-only">Search</label>
+                            <div class="relative mt-1 lg:w-64 xl:w-96">
+                                <input type="text" name="search" id="users-search"
+                                       class="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
+                                       placeholder="Search for pipelines" value="">
+                            </div>
+                        </form>
+                    </div>
+                    <div class="flex items-center ml-auto space-x-2 sm:space-x-3">
+                        <button type="button" data-modal-target="createPipelineModal"
+                                data-modal-toggle="createPipelineModal"
+                                class="relative text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                            <span class="relative z-10">Create New Pipeline</span>
+                            <svg class="rtl:rotate-180 w-3.5 h-3.5 ms-2 relative z-10" aria-hidden="true"
+                                 xmlns="http://www.w3.org/2000/svg"
+                                 fill="none" viewBox="0 0 14 10">
+                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                                      stroke-width="2"
+                                      d="M1 5h12m0 0L9 1m4 4L9 9"/>
+                            </svg>
+                        </button>
                     </div>
                 </div>
-                <button type="button" data-modal-target="createPipelineModal" data-modal-toggle="createPipelineModal"
-                        class="relative text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
-                    <span class="relative z-10">Create New Pipeline</span>
-                    <svg class="rtl:rotate-180 w-3.5 h-3.5 ms-2 relative z-10" aria-hidden="true"
-                         xmlns="http://www.w3.org/2000/svg"
-                         fill="none" viewBox="0 0 14 10">
-                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M1 5h12m0 0L9 1m4 4L9 9"/>
-                    </svg>
-                </button>
+                <div class="mt-4">
+
+                </div>
             </div>
         </div>
         <div>
@@ -72,9 +130,9 @@
                                 <p class="mb-3 font-normal text-gray-700 dark:text-gray-400">
                                     Status:
                                     {% if pipeline.is_active %}
-                                        <span class="text-green-600 dark:text-green-400">Active</span>
+                                        <span id="status-{{ pipeline.pk }}" class="text-green-600 dark:text-green-400">Active</span>
                                     {% else %}
-                                        <span class="text-red-600 dark:text-red-400">Inactive</span>
+                                        <span id="status-{{ pipeline.pk }}" class="text-red-600 dark:text-red-400">Inactive</span>
                                     {% endif %}
                                 </p>
                             </div>
@@ -95,8 +153,6 @@
                             </div>
 
 
-
-
                             <span id="progress-status-{{ pipeline.pk }}"
                                   class="text-sm text-gray-600 dark:text-gray-400 mt-1"></span>
                         </div>
@@ -115,14 +171,12 @@
                             </button>
                         </div>
                     </div>
-                    <div class="w-full bg-gray-200  h-2.5 dark:bg-gray-700">
+                    <div class="w-full bg-gray-200  h-2.5 dark:bg-gray-700 hidden">
                         <div id="progress-bar-{{ pipeline.pk }}"
                              class="bg-blue-500 text-xs font-medium text-blue-100 text-center p-0.5 leading-none"
                              style="width: 0%; background-color: #1C64F2;">
                         </div>
                     </div>
-
-
 
 
                 </div>
@@ -285,6 +339,7 @@
         function updateProgress(pipelineId) {
             const progressBar = document.getElementById(`progress-bar-${pipelineId}`);
             const progressStatus = document.getElementById(`progress-status-${pipelineId}`);
+            const statusElement = document.getElementById(`status-${pipelineId}`);
 
             const interval = setInterval(() => {
                 fetch(`/pipeline/get_progress/${pipelineId}/`, {
@@ -293,11 +348,15 @@
                     .then(response => response.json())
                     .then(data => {
                         progressBar.style.width = `${data.progress}%`;
-                        progressBar.innerText=`${data.progress}%`
+                        progressBar.innerText = `${data.progress}%`;
                         progressStatus.innerText = `${data.progress}% completed`;
+
                         if (data.progress >= 100 || data.status === 'completed') {
                             clearInterval(interval);
                             progressStatus.innerText = 'Completed';
+                            statusElement.innerText = 'Active';
+                            statusElement.classList.remove('text-red-600', 'dark:text-red-400');
+                            statusElement.classList.add('text-green-600', 'dark:text-green-400');
                         } else if (data.status === 'failed') {
                             clearInterval(interval);
                             progressStatus.innerText = 'Failed';
@@ -305,6 +364,7 @@
                     });
             }, 1000);
         }
+
 
     </script>
 {% endblock %}

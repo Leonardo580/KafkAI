@@ -43,15 +43,15 @@
     </div>
 
     <!-- Modal container -->
-    <div id="modal-container" class="hidden fixed z-50 inset-0 overflow-y-auto transition-opacity duration-300 ease-out"
+    <div id="modal-container" class="hidden  fixed z-50 inset-0 overflow-y-auto transition-opacity duration-300 ease-out"
          aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="flex items-end  justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div class="fixed inset-0 bg-gray-500 bg-opacity-75 dark:bg-opacity-50 transition-opacity duration-300 ease-out"
                  aria-hidden="true"></div>
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
             <div id="modal-content"
                  class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all duration-300 ease-out scale-95 opacity-0 dark:bg-gray-500 sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                <div class="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div class="bg-white dark:bg-gray-900  px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                     <div class="sm:flex sm:items-start">
                         <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-200 sm:mx-0 sm:h-10 sm:w-10">
                             <!-- Icon or content -->
@@ -66,7 +66,7 @@
                         </div>
                     </div>
                 </div>
-                <div id="modal-body" class="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div id="modal-body" class="bg-white dark:bg-gray-900 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                     <form id="knowledgeForm" class="space-y-6">
                         {% csrf_token %}
                         <div id="formError" class="text-red-500 text-sm hidden"></div> <!-- Error message container -->
@@ -153,10 +153,34 @@
             files: [],
         };
 
-        openModalBtn.addEventListener('click', openModal);
+        openModalBtn.addEventListener('click', open_modal_create);
         closeModalBtn.addEventListener('click', closeModal);
         addFileBtn.addEventListener('click', addFileInput);
         knowledgeForm.addEventListener('submit', submitForm);
+
+
+        function clearForm() {
+            // Clear input fields
+            document.getElementById('title').value = '';
+            document.getElementById('description').value = '';
+            document.getElementById('knowledgeId').value = '';
+
+            // Remove all file inputs
+            const fileInputsContainer = document.getElementById('fileInputs');
+            while (fileInputsContainer.firstChild) {
+                fileInputsContainer.removeChild(fileInputsContainer.firstChild);
+            }
+
+            // Optionally, hide the error message if it's visible
+            const formError = document.getElementById('formError');
+            if (!formError.classList.contains('hidden')) {
+                formError.classList.add('hidden');
+            }
+
+            // Reset the file list label
+            document.getElementById('file-list').textContent = 'Files';
+        }
+
 
         function addCardWithTransition(cardElement) {
             cardElement.classList.add('card-enter');
@@ -188,6 +212,11 @@
                 modalContent.classList.replace('scale-95', 'scale-100');
                 modalContent.classList.replace('opacity-0', 'opacity-100');
             }, 10);
+        }
+
+        function open_modal_create() {
+            clearForm()
+            openModal()
         }
 
         function closeModal() {
@@ -239,6 +268,7 @@
             });
 
             const knowledgeId = knowledgeIdInput.value;
+            console.log(knowledgeId.length);
             const url = knowledgeId ? `/knowledge/edit/${knowledgeId}/` : '/knowledge/create/';
             const method = 'POST';
 
@@ -253,7 +283,7 @@
                 .then(data => {
                     if (data.success) {
                         closeModal();
-                        if (!knowledgeId) {
+                        if (knowledgeId.length === 0) {
                             const newKnowledgeCard = document.createElement('div');
                             newKnowledgeCard.classList.add('group', 'flex', 'flex-col', 'col-span-1', 'border-black/5', 'min-h-[160px]', 'transition-all', 'duration-200', 'ease-in-out', 'bg-white', 'border', 'border-gray-200', 'rounded-lg', 'shadow', 'dark:border-gray-700', 'dark:bg-gray-800');
 
@@ -273,6 +303,14 @@
 
                             addCardWithTransition(newKnowledgeCard);
                             openModalBtn.insertAdjacentElement('afterend', newKnowledgeCard);
+                            newKnowledgeCard.querySelector(".edit-knowledge").addEventListener('click', function (event) {
+                                event.preventDefault(); 
+                                editKnowledge(data.knowledge_id);
+                            });
+                            newKnowledgeCard.querySelector(".delete-knowledge").addEventListener('click', function (e){
+                                e.preventDefault()
+                                deleteKnowledge(data.knowledge_id)
+                            })
                         } else if (knowledgeId) {
                             const knowledgeCard = document.querySelector(`[data-knowledge-id="${knowledgeId}"]`);
                             knowledgeCard.querySelector('h5').textContent = form.get("title");
@@ -324,7 +362,7 @@
                     console.error('Error deleting knowledge:', error);
                 });
         }
-        
+
         document.querySelectorAll('.edit-knowledge').forEach(function (link) {
             link.addEventListener('click', function (event) {
                 event.preventDefault(); // Prevent the default link behavior
@@ -333,9 +371,10 @@
                 editKnowledge(knowledgeId);
             });
         });
+
         function editKnowledge(knowledgeId) {
             const knowledgeCard = document.querySelector(`[data-knowledge-id="${knowledgeId}"]`);
-            
+
             const title = knowledgeCard.querySelector('h5').textContent;
             const description = knowledgeCard.querySelector('p').textContent;
 

@@ -7,6 +7,7 @@ langflow
 Cohere
 llama-index
 tavily-python
+psycopg2
 langchain_experimental
 langgraph~=0.1.6
 llama-index-core
@@ -28,3 +29,8 @@ djangorestframework~=3.15.1
 langchain~=0.2.0
 requests~=2.31.0
 pydantic~=2.7.1
+starlette~=0.37.2
+langserve~=0.2.2
+fastapi~=0.111.0
+aiomysql~=0.2.0
+pymysql~=1.1.1

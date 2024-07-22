@@ -11,9 +11,6 @@ from langchain.schema import runnable
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.llm_answer = LangGraphSingleton.get_instance().app
 
     async def connect(self):
         self.chat_id = self.scope['url_route']['kwargs']['chat_id']
@@ -25,6 +22,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
         )
         chat = await Chat.objects.aget(id=self.chat_id)
         pipeline_id = await sync_to_async(lambda: chat.pipeline.id)()
+        instance = LangGraphSingleton.get_instance()
+        await instance.initialize()
+        self.llm_answer = instance.app
         LangGraphSingleton.get_instance().rag_retriever.update_retriever("pipeline_chunks", "content", pipeline_id)
         await self.accept()
 
@@ -52,7 +52,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def handle_chat(self, data):
         message = data['message']
         sender = data['sender']
-
+        config = {"configurable": {"thread_id": self.chat_id}}
         if sender == 'user':
             chat = await sync_to_async(Chat.objects.get)(id=self.chat_id)
             user_message = await sync_to_async(Message.objects.create)(chat=chat, sender=sender, content=message)
@@ -60,33 +60,43 @@ class ChatConsumer(AsyncWebsocketConsumer):
             # Generate answer asynchronously
             llm_answer = self.llm_answer
             chat_history = await get_chat_history(self.chat_id)
+            # chat_history = [("human", "je m'appelle anas"), ("ai", "bonjour anas.")]
             llm_message = {}
             pipeline_id = await sync_to_async(lambda: chat.pipeline.id)()
+            steps = set()
+            async for chunk in llm_answer.astream_events(
+                    input={'question': message, "chat_history": chat_history}, config=config,
+                    version='v2'
+            ):
+                # Send updates for each node in the graph
 
-            # If llm_answer is a string, send it directly
-            if isinstance(llm_answer, str):
-                await self.send(text_data=json.dumps({
-                    'message': llm_answer,
-                    'sender': 'llm',
-                }))
-                await sync_to_async(Message.objects.create)(chat=chat, sender='llm', content=llm_answer)
-            else:
-                # If llm_answer is a stream, process chunks
-                async for chunk in llm_answer.astream_events(
-                        input={'question': message},
-                        version='v1'
-                ):
-                    if chunk["metadata"].get("langgraph_node") in ["llm_fallback", "generate"]:
-                        if chunk["event"] in ["on_chain_start", "on_chain_stream"]:
-                            await self.send(text_data=json.dumps({
-                                'message': dumps(chunk),
-                                'sender': 'llm',
-                            }))
-                    llm_message = chunk
-                pprint.pprint(llm_message)
-                llm_message = find_key(llm_message, "generation")
-                print(llm_message)
-                await sync_to_async(Message.objects.create)(chat=chat, sender='llm', content=llm_message)
+                if "metadata" in chunk and "langgraph_node" in chunk["metadata"]:
+                    node_name = chunk["metadata"]["langgraph_node"]
+                    if node_name not in steps:
+                        print(steps)
+                        await self.send(text_data=json.dumps({
+                            'message': node_name,
+                            'sender': 'system',
+                            'type': 'progress'
+                        }))
+                    steps.add(node_name)
+
+                if chunk["metadata"].get("langgraph_node") in ["llm_fallback", "generate"]:
+                    if chunk["event"] in ["on_chain_start", "on_chain_stream"]:
+                        await self.send(text_data=json.dumps({
+                            'message': dumps(chunk),
+                            'sender': 'llm',
+                        }))
+                llm_message = chunk
+
+            # Send final answer
+            final_answer = find_key(llm_message, "generation")
+            await self.send(text_data=json.dumps({
+                'message': final_answer,
+                'sender': 'llm',
+                'type': 'final_answer'
+            }))
+            await sync_to_async(Message.objects.create)(chat=chat, sender='llm', content=final_answer)
 
     async def handle_invoke(self, data):
         input_data = data.get('input', {})

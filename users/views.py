@@ -190,8 +190,8 @@ class EditUserView(AdminRequiredMixin, SuccessMessageMixin, UpdateView):
     success_url = reverse_lazy('show_users')
     success_message = "User updated successfully"
 
-    def get_object(self, queryset=None):
-        return self.request.user
+    # def get_object(self, queryset=None):
+    #     return self.request.user
 
     def form_valid(self, form):
         response = super().form_valid(form)

@@ -77,7 +77,6 @@ MIDDLEWARE = [
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
-
 AUTHENTICATION_BACKENDS = [
     # Needed to log in by username in Django admin, regardless of `allauth`
     'django.contrib.auth.backends.ModelBackend',
@@ -154,13 +153,13 @@ WSGI_APPLICATION = 'chat_bot.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
-
+POSTGRESS_DB_URI = 'postgresql://postgres:|cT:GVK<o<]9PRX10r":@localhost:5432/postgres?sslmode=disable'
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
+        'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'chatbot_db',
-        'USER': 'root',
-        'PASSWORD': '',
+        'USER': 'postgres',
+        'PASSWORD': 'NVsM2R8gF0Z5',
         'HOST': 'localhost',
 
     }
