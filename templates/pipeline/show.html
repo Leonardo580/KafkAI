@@ -360,6 +360,9 @@
                         } else if (data.status === 'failed') {
                             clearInterval(interval);
                             progressStatus.innerText = 'Failed';
+                            statusElement.innerText = 'Inactive';
+                            statusElement.classList.remove('text-green-600', 'dark:text-green-400');
+                            statusElement.classList.add('text-red-600', 'dark:text-red-400');
                         }
                     });
             }, 1000);

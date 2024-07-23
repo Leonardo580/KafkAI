@@ -27,5 +27,19 @@
         <property name="useSSL" value="TRUE" />
       </driver-properties>
     </data-source>
+    <data-source source="LOCAL" name="chatbot_db@localhost [2]" uuid="8de3b03c-d0cb-4c79-b5d1-87595a71f0c2">
+      <driver-ref>postgresql</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.postgresql.Driver</jdbc-driver>
+      <jdbc-url>jdbc:postgresql://localhost:5432/chatbot_db</jdbc-url>
+      <working-dir>$ProjectFileDir$</working-dir>
+    </data-source>
+    <data-source source="LOCAL" name="chatbot_db@localhost [3]" uuid="40672ff3-2946-4fea-91ac-84af3c7142d0">
+      <driver-ref>postgresql</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.postgresql.Driver</jdbc-driver>
+      <jdbc-url>jdbc:postgresql://localhost:5432/chatbot_db</jdbc-url>
+      <working-dir>$ProjectFileDir$</working-dir>
+    </data-source>
   </component>
 </project>

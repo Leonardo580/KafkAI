@@ -7,7 +7,7 @@ from knowledge_base.ChatBot import RAGRetriever
 
 logger = logging.getLogger(__name__)
 
-
+# Require celery running 'celery -A chat_bot worker --loglevel=info --pool=solo'
 @shared_task
 def launch_pipeline_task(progress_id):
     progress = PipelineProgress.objects.get(pk=progress_id)

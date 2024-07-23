@@ -214,12 +214,15 @@ class RAGRetriever:
             files.extend(KnowledgeFile.objects.filter(knowledge=k))
         input_files = [f.file.path for f in files]
         file_extractor = {".pdf": parser, ".doc": parser, ".docx": parser}
+        # WARNING: faulty package could throw errors
         return SimpleDirectoryReader(input_files=input_files, file_extractor=file_extractor, encoding="latin-1",
                                      raise_on_error=True).load_data()
 
     def embed_knowledge(self, knowledge, pipeline_id, progress_callback=None):
         text_splitter = SemanticChunker(self.cohere_embeddings)
         str_docs = [d.text for d in self.parse_files(knowledge)]
+        with open("docs.md", "w") as f:
+            f.write("\n".join(str_docs))
         docs = text_splitter.create_documents(str_docs)
         pipeline_chunks = self.weaviate_client.collections.get("pipeline_chunks")
 

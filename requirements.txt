@@ -34,3 +34,5 @@ langserve~=0.2.2
 fastapi~=0.111.0
 aiomysql~=0.2.0
 pymysql~=1.1.1
+markdown~=3.6
+psycopg~=3.2.1

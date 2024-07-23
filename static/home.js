@@ -35,7 +35,7 @@ function createChatWithPipeline(pipelineId) {
             contentBlock.innerHTML = data;
             const chat_id = contentBlock.children.item(0).id;
              anchor.setAttribute('x-bind:class', `{ 'bg-blue-500 text-white': selectedChat === ${chat_id} }`);
-                anchor.setAttribute('x-on:click.prevent', `selectedChat = ${chat_id}`);
+                anchor.setAttribute('x-on:click.prevent', `selectedChat = ${chat_id}; chat_messages(${chat_id})`);
                 initializeChat(chat_id);
             anchor.addEventListener('click', () => {
                 initializeChat(chat_id);
@@ -235,8 +235,26 @@ function appendUserMessage(message, chatMessages) {
 function appendBotMessage(message, botMessageId, chatMessages) {
     const botMessageContainer = document.createElement('div');
     botMessageContainer.id = botMessageId;
-    botMessageContainer.classList.add('mb-4', 'flex', 'rounded-xl', 'bg-slate-50', 'px-2', 'py-6', 'dark:bg-slate-900', 'sm:px-4', 'chat-message');
 
+    botMessageContainer.classList.add('mb-4', 'flex', 'rounded-xl', 'bg-slate-50', 'px-2', 'py-6', 'dark:bg-slate-900', 'sm:px-4', 'chat-message');
+    const copyButtonContainer = document.createElement("div");
+    copyButtonContainer.classList.add("mb-2","flex","w-full","flex-row","justify-end","gap-x-2","text-slate-500");
+    const copyButton = document.createElement("button");
+    copyButton.classList.add("hover:text-blue-600");
+    copyButton.innerHTML = ` 
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                                <path d="M8 8m0 2a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2z"></path>
+                                <path d="M16 8v-2a2 2 0 0 0 -2 -2h-8a2 2 0 0 0 -2 2v8a2 2 0 0 0 2 2h2"></path>
+                            </svg>
+    `
+    copyButton.addEventListener("click", function (e){
+        e.preventDefault();
+        let content = botMessageContent.innerText;
+        navigator.clipboard.writeText(content)
+    })
+    copyButtonContainer.appendChild(copyButton);
+    botMessageContainer.appendChild(copyButtonContainer);
     const botAvatar = document.createElement('img');
     botAvatar.classList.add('mr-2', 'flex', 'h-8', 'w-8', 'rounded-full', 'sm:mr-4');
     botAvatar.src = bot_avatar_url;
@@ -366,6 +384,7 @@ function loadMoreChats() {
                         chat_#${chat.id}
                     </a>
                 `;
+
                 chatHistoryList.insertBefore(li, chatHistoryList.lastElementChild);
             });
             this.page++;
