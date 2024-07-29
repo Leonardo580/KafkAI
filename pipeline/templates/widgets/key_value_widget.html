@@ -1,0 +1,37 @@
+<div id="{{ widget.attrs.id }}" class="space-y-2">
+    {% for key, value in widget.value %}
+        <div class="key-value-pair flex items-center space-x-2">
+            <input type="text" name="{{ widget.name }}_key" value="{{ key }}" class="form-input block w-full sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:text-white" placeholder="Key" />
+            <input type="text" name="{{ widget.name }}_value" value="{{ value }}" class="form-input block w-full sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:text-white" placeholder="Value" />
+            <button type="button" class="remove-pair text-red-700 hover:text-white border border-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2 dark:border-red-500 dark:text-red-500 dark:hover:text-white dark:hover:bg-red-600 dark:focus:ring-red-900">Remove</button>
+        </div>
+    {% endfor %}
+    <div class="key-value-pair-template flex items-center space-x-2" style="display:none;">
+        <input type="text" name="{{ widget.name }}_key" class="form-input block w-full sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:text-white" placeholder="Key" />
+        <input type="text" name="{{ widget.name }}_value" class="form-input block w-full sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:text-white" placeholder="Value" />
+        <button type="button" class="remove-pair text-red-700 hover:text-white border border-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2 dark:border-red-500 dark:text-red-500 dark:hover:text-white dark:hover:bg-red-600 dark:focus:ring-red-900">Remove</button>
+    </div>
+    <div class=" space-x-2">
+        <button type="button" id="add-pair" class="ml-auto text-blue-700 hover:text-white border border-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2 dark:border-blue-500 dark:text-blue-500 dark:hover:text-white dark:hover:bg-blue-500 dark:focus:ring-blue-800">Add Pair</button>
+    </div>
+</div>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const container = document.getElementById("{{ widget.attrs.id }}");
+        const template = container.querySelector(".key-value-pair-template");
+
+        container.querySelector("#add-pair").addEventListener("click", function() {
+            const newPair = template.cloneNode(true);
+            newPair.style.display = "flex";
+            newPair.classList.replace("key-value-pair-template", "key-value-pair")
+            container.insertBefore(newPair, template);
+        });
+
+        container.addEventListener("click", function(e) {
+            
+            if (e.target.classList.contains("remove-pair")) {
+                e.target.closest(".key-value-pair").remove();
+            }
+        });
+    });
+</script>

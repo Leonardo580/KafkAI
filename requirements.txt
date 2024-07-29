@@ -8,6 +8,7 @@ Cohere
 llama-index
 tavily-python
 psycopg2
+react~=4.3.0
 langchain_experimental
 langgraph~=0.1.6
 llama-index-core
@@ -36,3 +37,4 @@ aiomysql~=0.2.0
 pymysql~=1.1.1
 markdown~=3.6
 psycopg~=3.2.1
+cryptography~=42.0.7

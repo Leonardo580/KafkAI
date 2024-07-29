@@ -1,0 +1,13 @@
+{% extends "admin.html" %}
+{% load vite  %}
+{% block content %}
+
+  
+  <div class="px-4 pt-6" id="root"></div>
+
+{% endblock %}
+
+{% block extrajs %}
+    {% vite %}
+  {% vite "dist/src/main.jsx" "dist/src/App.css" %}
+{% endblock %}

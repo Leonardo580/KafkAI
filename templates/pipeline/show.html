@@ -1,5 +1,5 @@
 {% extends 'admin.html' %}
-
+{% load static %}
 {% block content %}
     <style>
         .p-4.mb-4.block {
@@ -117,73 +117,76 @@
         </div>
         <div>
             {% for pipeline in pipelines %}
-                <div class="mb-1 p-2">
-                    <div class="flex bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 relative">
-                        <img class="object-cover w-1/4 rounded-l-lg"
-                             src="https://cdn.prod.website-files.com/614c82ed388d53640613982e/635bcc314b1a018b6e6c19b2_634fd79c73f5b9eadadae693_632078674751779966b7cf47_how-to-optimize-machine-learning-pipeline.png"
-                             alt=""
-                             style="max-width: 150px; height: auto;">
-                        <div class="flex flex-col justify-between p-4 leading-normal w-3/4">
-                            <div>
-                                <h5 class="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">{{ pipeline.name }}</h5>
-                                <p class="mb-3 font-normal text-gray-700 dark:text-gray-400">{{ pipeline.description }}</p>
-                                <p class="mb-3 font-normal text-gray-700 dark:text-gray-400">
-                                    Status:
-                                    {% if pipeline.is_active %}
-                                        <span id="status-{{ pipeline.pk }}" class="text-green-600 dark:text-green-400">Active</span>
-                                    {% else %}
-                                        <span id="status-{{ pipeline.pk }}" class="text-red-600 dark:text-red-400">Inactive</span>
-                                    {% endif %}
-                                </p>
-                            </div>
-                            <div class="flex space-x-2">
-                                <a href="{% url 'edit_simple_pipeline' pipeline.pk %}"
-                                   class="text-blue-600 hover:underline dark:text-blue-400">Details</a>
-                                <button class="flex items-center text-green-600 hover:underline dark:text-green-400"
-                                        onclick="launchPipeline({{ pipeline.pk }})">
-                                    Launch Pipeline
-                                    <svg class="w-6 h-6 ml-2 text-gray-800 dark:text-white" aria-hidden="true"
-                                         xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor"
-                                         viewBox="0 0 24 24">
-                                        <path fill-rule="evenodd"
-                                              d="M10.271 5.575C8.967 4.501 7 5.43 7 7.12v9.762c0 1.69 1.967 2.618 3.271 1.544l5.927-4.881a2 2 0 0 0 0-3.088l-5.927-4.88Z"
-                                              clip-rule="evenodd"/>
-                                    </svg>
-                                </button>
-                            </div>
-
-
-                            <span id="progress-status-{{ pipeline.pk }}"
-                                  class="text-sm text-gray-600 dark:text-gray-400 mt-1"></span>
-                        </div>
-                        <div class="absolute top-2 right-2 flex space-x-2">
-                            <button type="button" data-modal-target="deletePipelineModal"
-                                    data-modal-toggle="deletePipelineModal"
-                                    data-url="{% url 'delete_pipeline' pipeline.pk %}" class="p-1">
-                                <svg class="w-6 h-6 text-red-800 dark:text-red-500 group-hover:text-white glow"
-                                     aria-hidden="true"
-                                     xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor"
-                                     viewBox="0 0 24 24">
-                                    <path fill-rule="evenodd"
-                                          d="M8.586 2.586A2 2 0 0 1 10 2h4a2 2 0 0 1 2 2v2h3a1 1 0 1 1 0 2v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V8a1 1 0 0 1 0-2h3V4a2 2 0 0 1 .586-1.414ZM10 6h4V4h-4v2Zm1 4a1 1 0 1 0-2 0v8a1 1 0 1 0 2 0v-8Zm4 0a1 1 0 1 0-2 0v8a1 1 0 1 0 2 0v-8Z"
-                                          clip-rule="evenodd"/>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="w-full bg-gray-200  h-2.5 dark:bg-gray-700 hidden">
-                        <div id="progress-bar-{{ pipeline.pk }}"
-                             class="bg-blue-500 text-xs font-medium text-blue-100 text-center p-0.5 leading-none"
-                             style="width: 0%; background-color: #1C64F2;">
-                        </div>
-                    </div>
-
-
+    <div class="mb-1 p-2">
+        <div class="flex bg-black border border-gray-200 rounded-lg shadow hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 relative"
+             style="background-image: url('{% static 'images/pipeline/premium_photo-1681488376930-688713d9c18f.avif' %}');
+                    background-size: cover;
+                    background-position: center;">
+            <div class="w-full h-full absolute top-0 left-0 rounded-lg"
+                 style="background: linear-gradient(to right, rgba(0,0,0,0.9), rgba(0,0,0,0.8));"></div>
+            <div class="flex flex-col justify-between p-4 leading-normal w-full relative z-10">
+                <div>
+                    <h5 class="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">{{ pipeline.name }}</h5>
+                    <p class="mb-3 font-normal text-gray-700 dark:text-gray-400">{{ pipeline.description }}</p>
+                    <p class="mb-3 font-normal text-gray-700 dark:text-gray-400">
+                        Status:
+                        {% if pipeline.is_active %}
+                            <span id="status-{{ pipeline.pk }}" class="text-green-600 dark:text-green-400">Active</span>
+                        {% else %}
+                            <span id="status-{{ pipeline.pk }}" class="text-red-600 dark:text-red-400">Inactive</span>
+                        {% endif %}
+                    </p>
                 </div>
-            {% endfor %}
-
-
+                <div class="flex space-x-2">
+                    <a href="{% url 'edit_simple_pipeline' pipeline.pk %}"
+                       class="text-blue-600 hover:underline dark:text-blue-400">Details</a>
+                    <button class="flex items-center text-green-600 hover:underline dark:text-green-400"
+                            onclick="launchPipeline({{ pipeline.pk }})">
+                        Launch Pipeline
+                        <svg class="w-6 h-6 ml-2 text-gray-800 dark:text-white" aria-hidden="true"
+                             xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor"
+                             viewBox="0 0 24 24">
+                            <path fill-rule="evenodd"
+                                  d="M10.271 5.575C8.967 4.501 7 5.43 7 7.12v9.762c0 1.69 1.967 2.618 3.271 1.544l5.927-4.881a2 2 0 0 0 0-3.088l-5.927-4.88Z"
+                                  clip-rule="evenodd"/>
+                        </svg>
+                    </button>
+                </div>
+                <span id="progress-status-{{ pipeline.pk }}"
+                      class="text-sm text-gray-600 dark:text-gray-400 mt-1"></span>
+                <div class="flex justify-end mt-4">
+                    <a href="{% url 'update_advanced_pipeline' pipeline.pk %}"
+                       class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        Advanced Configuration
+                    </a>
+                </div>
+            </div>
+            <div class="absolute top-2 right-2 flex space-x-2 z-20">
+                <button type="button" data-modal-target="deletePipelineModal"
+                        data-modal-toggle="deletePipelineModal"
+                        data-url="{% url 'delete_pipeline' pipeline.pk %}" class="p-1">
+                    <svg class="w-6 h-6 text-red-800 dark:text-red-500 group-hover:text-white glow"
+                         aria-hidden="true"
+                         xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor"
+                         viewBox="0 0 24 24">
+                        <path fill-rule="evenodd"
+                              d="M8.586 2.586A2 2 0 0 1 10 2h4a2 2 0 0 1 2 2v2h3a1 1 0 1 1 0 2v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V8a1 1 0 0 1 0-2h3V4a2 2 0 0 1 .586-1.414ZM10 6h4V4h-4v2Zm1 4a1 1 0 1 0-2 0v8a1 1 0 1 0 2 0v-8Zm4 0a1 1 0 1 0-2 0v8a1 1 0 1 0 2 0v-8Z"
+                              clip-rule="evenodd"/>
+                    </svg>
+                </button>
+            </div>
         </div>
+        <div class="w-full bg-gray-200  h-2.5 dark:bg-gray-700 hidden">
+            <div id="progress-bar-{{ pipeline.pk }}"
+                 class="bg-blue-500 text-xs font-medium text-blue-100 text-center p-0.5 leading-none"
+                 style="width: 0%; background-color: #1C64F2;">
+            </div>
+        </div>
+    </div>
+{% endfor %}
+        </div>
+
+
     </div>
 
     <!-- Create Pipeline Modal -->

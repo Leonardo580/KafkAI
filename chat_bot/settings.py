@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/4.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
-
+from django.core.management.utils import get_random_secret_key
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -22,7 +22,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY')
+SECRET_KEY = os.getenv('ENCRYPTION_KEY') or get_random_secret_key()
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -55,6 +55,13 @@ INSTALLED_APPS = [
     "django_select2",
     'langserve',
     'corsheaders',
+    'flat_json_widget',
+    "encrypted_model_fields"
+
+    # "react",
+    # "django_vite_plugin",
+    # "better_json_widget"
+    # "django_vite"
     # "rest_framework_simple_api_key",
 
     # 'compressor',
@@ -76,6 +83,19 @@ MIDDLEWARE = [
 ]
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
+DJANGO_VITE = {
+    "default": {
+        "dev_mode": True,
+
+    }
+}
+
+REACT = {
+    'RENDER': DEBUG,
+    'RENDER_URL': 'http://127.0.0.1:9009/render',
+}
+
+FIELD_ENCRYPTION_KEY = os.environ.get('ENCRYPTION_KEY', '')
 
 AUTHENTICATION_BACKENDS = [
     # Needed to log in by username in Django admin, regardless of `allauth`
@@ -119,6 +139,8 @@ SOCIALACCOUNT_PROVIDERS = {
         }
     }
 }
+
+
 
 ROOT_URLCONF = 'chat_bot.urls'
 
@@ -208,6 +230,8 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 # STATIC_ROOT = BASE_DIR / "media"
+# STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static/'),
     os.path.join(BASE_DIR, 'static/media/'),

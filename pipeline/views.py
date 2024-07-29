@@ -1,19 +1,24 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.views.generic import ListView
-from django.views.generic.edit import CreateView, FormView, DeleteView
+from django.views.generic.edit import CreateView, FormView, DeleteView, UpdateView
 from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
 from django.views import View
-from .models import Pipeline, PipelineProgress
+from react.render import render_component
+
+from .models import Pipeline, PipelineProgress, RAGRetrieverConfig
 from .serializers import PipelineSerializer
 from .tasks import launch_pipeline_task
 from rest_framework import viewsets
 from knowledge.models import Knowledge
-from pipeline.forms import CreateSimplePipelineForm
-from pipeline.models import Pipeline, SimplePipeline, PipelineConfig
+from pipeline.forms import CreateSimplePipelineForm, RAGRetrieverConfigForm, ModelForm, EmbeddingForm, \
+    RouteQuestionForm, GraderForm, HallucinationForm, AnswerForm
+from pipeline.models import Pipeline
 from users.views import AdminRequiredMixin
-from rest_framework.response import  Response
+from rest_framework.response import Response
+from formtools.wizard.views import SessionWizardView
+
 
 # Create your views here.
 class PipelineView(AdminRequiredMixin, ListView):
@@ -29,25 +34,54 @@ class CreateSimplePipelineView(AdminRequiredMixin, FormView):
 
     def form_valid(self, form):
         # Create Pipeline instance
+        config = RAGRetrieverConfig.objects.create()
         pipeline = Pipeline.objects.create(
             name=form.cleaned_data['name'],
             description=form.cleaned_data['description'],
-            creator=self.request.user  # Assuming you want to set the creator
-        )
-        config = PipelineConfig.objects.create()
-        # Create SimplePipeline instance
-        simple_pipeline = SimplePipeline.objects.create(
-            pipeline=pipeline,
-            instruction=form.cleaned_data['instruction'],
-            variable=form.cleaned_data['variable'],
+            creator=self.request.user,
             config=config
         )
-
-        # Set the many-to-many relationship
         knowledge_ids = form.cleaned_data['knowledge']
-        simple_pipeline.knowledge.set(knowledge_ids)
-
+        pipeline.knowledge.set(knowledge_ids)
+        pipeline.save()
         return super().form_valid(form)
+
+
+class UpdateAdvancedPipelineView(AdminRequiredMixin, SessionWizardView):
+    template_name = 'pipeline/create_advanced_pipeline.html'
+    form_list = [ModelForm, EmbeddingForm, RouteQuestionForm, GraderForm, HallucinationForm, AnswerForm]
+    success_url = reverse_lazy('show_pipeline')
+
+    def get_form_instance(self, queryset=None):
+        return get_object_or_404(Pipeline, id=self.kwargs['pk']).config
+
+    def get_context_data(self, form, **kwargs):
+        context = super().get_context_data(form=form, **kwargs)
+        headers = [
+            "This form is used to configure the Language Model (LLM) settings, including selecting the LLM provider, specifying the model name, providing the API key, setting model arguments, and defining the model preamble.",
+            "This form allows users to configure the embedding model settings. Users can select the embedding provider, specify the embedding model, provide the API key, and set the embedding model arguments.",
+            "This form is used to set up routing questions, including defining the preamble text for routing questions and enabling or disabling history tracking for these questions.",
+            "This form is designed for configuring grading settings. It includes fields for setting the preamble text for grading and specifying the grading prompt.",
+            "This form is used to configure hallucination detection settings. Users can set the preamble text for hallucination detection and define the hallucination detection prompt.",
+            "This form allows users to configure the settings for answering questions. It includes fields for setting the preamble text for answering questions and specifying the answering prompt."
+        ]
+        context['headers'] = headers
+        return context
+    def done(self, form_list, **kwargs):
+        instance = self.get_form_instance(0)
+        for form in form_list:
+            if form.is_valid():
+                for field, value in form.cleaned_data.items():
+                    setattr(instance, field, value)
+        instance.save()
+        return redirect(self.success_url)
+
+
+def test(request):
+    # context = {
+    #     'component': render_component(path='../static/react/components/multiStepForm.jsx', props= {'name': 'World'}),
+    # }
+    return render(request, 'pipeline/test.html')
 
 
 class EditSimplePipelineView(AdminRequiredMixin, FormView):
@@ -60,34 +94,25 @@ class EditSimplePipelineView(AdminRequiredMixin, FormView):
 
     def get_initial(self):
         pipeline = self.get_object()
-        simple_pipeline = SimplePipeline.objects.get(pipeline=pipeline)
         initial = super().get_initial()
         initial.update({
             'name': pipeline.name,
             'description': pipeline.description,
-            'instruction': simple_pipeline.instruction,
-            'variable': simple_pipeline.variable,
-            'knowledge': simple_pipeline.knowledge.all(),
+            'knowledge': pipeline.knowledge.all(),
         })
         return initial
 
     def form_valid(self, form):
         pipeline = self.get_object()
-        simple_pipeline = SimplePipeline.objects.get(pipeline=pipeline)
 
         # Update the associated Pipeline instance
         pipeline.name = form.cleaned_data['name']
         pipeline.description = form.cleaned_data['description']
         pipeline.save()
 
-        # Update SimplePipeline instance
-        simple_pipeline.instruction = form.cleaned_data['instruction']
-        simple_pipeline.variable = form.cleaned_data['variable']
-        simple_pipeline.save()
-
         # Update the many-to-many relationship
         knowledge_ids = form.cleaned_data['knowledge']
-        simple_pipeline.knowledge.set(knowledge_ids)
+        pipeline.knowledge.set(knowledge_ids)
 
         return super().form_valid(form)
 
@@ -98,7 +123,7 @@ class DeletePipelineView(AdminRequiredMixin, DeleteView):
     success_url = reverse_lazy('show_pipeline')
 
 
-class LaunchPipelineView(View):
+class LaunchPipelineView(AdminRequiredMixin, View):
     def get(self, request, pk):
         pipeline = get_object_or_404(Pipeline, pk=pk)
         pipeline_progress, created = PipelineProgress.objects.get_or_create(pipeline=pipeline, status='running')
@@ -118,7 +143,8 @@ class GetProgressView(View):
 class GetPipelinesView(viewsets.ModelViewSet):
     serializer_class = PipelineSerializer
     queryset = Pipeline.objects.filter(is_active=True).order_by('name')
+
     def list(self, request, *args, **kwargs):
         query = self.get_queryset()
-        serializer =self.get_serializer(query, many=True)
+        serializer = self.get_serializer(query, many=True)
         return Response(serializer.data)

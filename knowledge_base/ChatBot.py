@@ -40,9 +40,14 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_community.chat_message_histories import ChatMessageHistory
 
 from knowledge.models import Knowledge, KnowledgeFile
+from pipeline.models import RAGRetrieverConfig
 from .postgres_saver import PostgresSaver
 from .weaviate_init import WeaviateConnector
 from langchain_cohere import ChatCohere
+from langchain_community.chat_models import ChatOpenAI
+from langchain_community.chat_models import anthropic
+from langchain_community.chat_models import ollama
+
 from langchain_cohere.embeddings import CohereEmbeddings
 from langchain_weaviate.vectorstores import WeaviateVectorStore
 from langchain.chains.retrieval import create_retrieval_chain
@@ -80,46 +85,43 @@ def process_chat_history(msg):
 
 class RAGRetriever:
     def __init__(self):
-        self.weaviate_client = WeaviateConnector().get_instance().client
-        preamble = """
-                    Vous êtes un assistant pour les tâches d'assistance technique. 
-                    Utilisez trois phrases maximum et gardez la réponse concise. 
-                    Répondez toujours en français.
-                    """
-        self.cohere_model = (ChatCohere(model="command-r"
-                                        , tempreature=0.2
-                                        , cohere_api_key=os.getenv('COHERE_API_KEY'))
-                             .bind(preamble=preamble))
+        # Load the configuration from the database
+        config = RAGRetrieverConfig.objects.first()
 
-        rag_preamble = """
-                    Vous êtes un assistant pour les tâches d'assistance technique. 
-                    Utilisez les éléments de contexte récupérés et les exemples fournis pour répondre 
-                    à la question. Si vous ne connaissez pas la réponse, dites-le. 
-                    Utilisez trois phrases maximum et gardez la réponse concise. 
-                    Répondez toujours en français.
-        """
-        self.rag_cohere_model = (ChatCohere(model="command-r"
-                                            , tempreature=0.2
-                                            , cohere_api_key=os.getenv('COHERE_API_KEY'))
-                                 .bind(preamble=rag_preamble))
+        if config.llm_provider == 'cohere':
+            self.llm_model = ChatCohere(model=config.model_name,
+                                        **config.model_args,
+                                        cohere_api_key=config.model_api_key)
+        elif config.llm_provider == 'anthropic':
+            self.llm_model = anthropic.ChatOpenAI(model=config.model_name, **config.model_args
+                                                  , )
+        elif config.llm_provider == 'gpt':
+            # Configure for GPT
+            pass
+        elif config.llm_provider == 'huggingface':
+            # Configure for HuggingFace
+            pass
 
-        grad_preamble = """Vous êtes un évaluateur évaluant la pertinence d'un document récupéré par rapport à une question d'utilisateur. \n
-        Si le document contient des mots-clés ou une signification sémantique liés à la question de l'utilisateur, évaluez-le comme pertinent. \n
-        Donnez une note binaire 'yes' ou 'no' pour indiquer si le document est pertinent par rapport à la question."""
-        self.grad_llm = ChatCohere(model="command-r", temprature=0, cohere_api_key=os.getenv('COHERE_API_KEY'))
+        preamble = config.model_preamble
+        self.cohere_model = self.llm_model.bind(preamble=preamble)
+
+        rag_preamble = config.model_preamble
+        self.rag_cohere_model = self.llm_model.bind(preamble=rag_preamble)
+
+        grad_preamble = config.grade_preamble
+        self.grad_llm = self.llm_model
         structured_llm_grader = self.grad_llm.with_structured_output(GradeDocuments, preamble=grad_preamble)
         grad_prompt = ChatPromptTemplate.from_messages(
-            [("human", "Document récupéré : \n\n {document} \n\n Question de l'utilisateur : {question}"), ]
+            [("human", config.grade_prompt), ]
         )
-        self.route_preamble = """Prendre en compte l'historique de la conversation.Vous êtes un expert en routage de questions utilisateur vers un vectorstore ou une recherche Web.
-        Le vectorstore contient des documents liés aux agents, à l'ingénierie des invites et aux attaques adversariales.
-        Utilisez le vectorstore pour les questions sur ces sujets. Sinon, utilisez la recherche Web."""
-        self.route_llm = ChatCohere(model="command-r", temprature=0, cohere_api_key=os.getenv('COHERE_API_KEY'))
+
+        self.route_preamble = config.route_question_preamble
+        self.route_llm = self.llm_model
         history_prompt = """
         Étant donné un historique de conversation et la dernière question de l'utilisateur qui pourrait se référer au contexte de l'historique de conversation,
-         formulez une question autonome qui peut être comprise sans l'historique de conversation. 
-         Ne répondez PAS à la question, reformulez-la seulement si nécessaire et sinon, renvoyez-la telle quelle.
-        """
+        formulez une question autonome qui peut être comprise sans l'historique de conversation. 
+        Ne répondez PAS à la question, reformulez-la seulement si nécessaire et sinon, renvoyez-la telle quelle.
+    """
         contextualize_q_prompt = ChatPromptTemplate.from_messages(
             [
                 ("system", history_prompt),
@@ -135,32 +137,44 @@ class RAGRetriever:
                 ("human", "{question}"),
             ]
         )
-        preamble = """Vous êtes un évaluateur évaluant si une génération LLM est fondée sur / soutenue par un ensemble de faits récupérés. \n
-        Donnez une note binaire 'yes' ou 'no'. 'yes' signifie que la réponse est fondée sur / soutenue par l'ensemble des faits."""
-        self.hallucination_llm = ChatCohere(model="command-r", temprature=0, cohere_api_key=os.getenv('COHERE_API_KEY'))
+
+        hallucination_preamble = config.hallucination_preamble
+        self.hallucination_llm = self.llm_model
         structured_llm_hallucination = self.hallucination_llm.with_structured_output(
-            GradeDocuments, preamble=preamble
+            GradeDocuments, preamble=hallucination_preamble
         )
         hallucination_prompt = ChatPromptTemplate.from_messages(
-            ("human", "Ensemble de faits : \n\n {documents} \n\n Génération LLM : {generation}"),
+            ("human", config.hallucination_prompt),
         )
-        preamble = """Vous êtes un évaluateur évaluant si une réponse répond / résout une question \n
-        Donnez une note binaire 'yes' ou 'no'. 'yes' signifie que la réponse résout la question."""
-        self.answer_grader_llm = ChatCohere(model="command-r", temprature=0, cohere_api_key=os.getenv('COHERE_API_KEY'))
+
+        answer_preamble = config.answer_preamble
+        self.answer_grader_llm = self.llm_model
         structured_llm_answer_grader = self.answer_grader_llm.with_structured_output(
-            GradeAnswer, preamble=preamble
+            GradeAnswer, preamble=answer_preamble
         )
         answer_prompt = ChatPromptTemplate.from_messages(
             [
-                ("human", "Question de l'utilisateur : \n\n {question} \n\n Génération LLM : {generation}"),
+                ("human", config.answer_prompt),
             ]
         )
 
-        self.cohere_embeddings = CohereEmbeddings(cohere_api_key=os.getenv('COHERE_API_KEY'))
+        if config.embedding_provider == 'cohere':
+            self.cohere_embeddings = CohereEmbeddings(cohere_api_key=os.getenv('COHERE_API_KEY'))
+            self.cohere_embeddings.model = config.embedding_model
+        elif config.embedding_provider == 'gpt':
+            # Configure for GPT embeddings
+            pass
+        elif config.embedding_provider == 'claude':
+            # Configure for Claude embeddings
+            pass
+        elif config.embedding_provider == 'huggingface':
+            # Configure for HuggingFace embeddings
+            pass
 
-        self.cohere_embeddings.model = "embed-multilingual-v3.0"
-        self.ocr_url = "https://api.llamacloud.ai/v1/pdf-extract"
-        self.ocr_api_key = os.getenv('OCRENGINE_API_KEY')
+        self.ocr_url = config.ocr_url
+        self.ocr_api_key = config.ocr_api_key
+        self.weaviate_client = WeaviateConnector().get_instance().client
+
         self.retriever = WeaviateVectorStore(self.weaviate_client,
                                              "pipeline_chunks",
                                              "content",

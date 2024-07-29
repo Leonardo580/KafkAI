@@ -1,6 +1,6 @@
 import time
 from celery import shared_task
-from .models import PipelineProgress, Pipeline, SimplePipeline
+from .models import PipelineProgress, Pipeline
 from django.db import transaction
 import logging
 from knowledge_base.ChatBot import RAGRetriever
@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 def launch_pipeline_task(progress_id):
     progress = PipelineProgress.objects.get(pk=progress_id)
     pipeline_id = progress.pipeline.pk  # Store the ID, not the object
-    knowledge = SimplePipeline.objects.get(pipeline=progress.pipeline).knowledge.all()
+    knowledge = progress.pipeline.knowledge.objects.get(pipeline=progress.pipeline).knowledge.all()
     try:
         def progress_callback(current, total):
             percentage = int((current / total) * 100)

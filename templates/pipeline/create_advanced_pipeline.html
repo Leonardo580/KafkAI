@@ -1,0 +1,95 @@
+{% extends 'admin.html' %}
+{% block content %}
+    <!-- templates/pipeline/create_advanced_pipeline.html -->
+
+    <div class="mx-4 my-4">
+        {% if wizard.steps.next == '1' %}
+            <h2 class="text-5xl font-extrabold dark:text-white mb-1">LLM MODEL</h2>
+            <p class="mb-4 text-lg font-normal text-gray-500 dark:text-gray-400">{{ headers.0 }}</p>
+        {% elif wizard.steps.next == '2' %}
+            <h2 class="text-5xl font-extrabold dark:text-white mb-1">Embedding Model</h2>
+            <p class="mb-4 text-lg font-normal text-gray-500 dark:text-gray-400">{{ headers.1 }}</p>
+        {% elif wizard.steps.next == '3' %}
+            <h2 class="text-5xl font-extrabold dark:text-white mb-1">Routing Questions</h2>
+            <p class="mb-4 text-lg font-normal text-gray-500 dark:text-gray-400">{{ headers.2 }}</p>
+        {% elif wizard.steps.next == '4' %}
+            <h2 class="text-5xl font-extrabold dark:text-white mb-1">Grading Settings</h2>
+            <p class="mb-4 text-lg font-normal text-gray-500 dark:text-gray-400">{{ headers.3 }}</p>
+        {% elif wizard.steps.next == '5' %}
+            <h2 class="text-5xl font-extrabold dark:text-white mb-1">Hallucination Detection</h2>
+            <p class="mb-4 text-lg font-normal text-gray-500 dark:text-gray-400">{{ headers.4 }}</p>
+        {% else %}
+            <h2 class="text-5xl font-extrabold dark:text-white mb-1">Answering Questions</h2>
+            <p class="mb-4 text-lg font-normal text-gray-500 dark:text-gray-400">{{ headers.5 }}</p>
+        {% endif %}
+
+
+        <form method="post" novalidate class="space-y-6">
+            {% csrf_token %}
+            {{ from.media }}
+            {{ wizard.management_form }}
+            {% if wizard.form.forms %}
+                {% for form in wizard.form.forms %}
+
+                    {% for field in form %}
+
+                        <div>
+                            <label for="{{ field.id_for_label }}"
+                                   class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                {{ field.label }}
+                            </label>
+                            {{ field.errors }}
+                            {{ field }}
+                            {% if field.help_text %}
+                                <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ field.help_text|safe }}</p>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                {% endfor %}
+            {% else %}
+                {% for field in wizard.form %}
+                    <div>
+                        <label for="{{ field.id_for_label }}"
+                               class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            {{ field.label }}
+                        </label>
+                        {{ field.errors }}
+                        {{ field }}
+                        {% if field.help_text %}
+                            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ field.help_text|safe }}</p>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <div class="flex justify-between">
+                {% if wizard.steps.prev %}
+                    <button type="submit" name="wizard_goto_step" value="{{ wizard.steps.prev }}"
+                            class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                        Previous
+                    </button>
+                {% else %}
+                    <div></div> <!-- Empty div to maintain flex spacing when there's no 'Previous' button -->
+                {% endif %}
+                <button type="submit"
+                        class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                    {% if wizard.steps.next %}
+                        Next
+                    {% else %}
+                        Submit
+                    {% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+    <div id="surveyContainer"></div>
+{% endblock %}
+{% block extrajs %}
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/survey-jquery/1.11.8/survey.css" type="text/css"
+          rel="stylesheet"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/survey-jquery/1.11.8/survey.jquery.min.js"></script>
+    <script src="https://unpkg.com/survey-knockout-ui/survey-knockout-ui.min.js"></script>
+    <script>
+
+    </script>
+{% endblock %}
