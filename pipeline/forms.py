@@ -128,16 +128,7 @@ class KeyValueWidget(forms.Widget):
         return context
 
 
-class PartiallyMaskedTextInput(forms.TextInput):
-    template_name = 'widgets/partially_masked_text_input.html'
 
-    def get_context(self, name, value, attrs):
-        context = super().get_context(name, value, attrs)
-        if value:
-            visible_part = value[:5]
-            masked_part = '*' * (len(value) - 5)
-            context['widget']['masked_value'] = visible_part + masked_part
-        return context
 
 
 class ModelForm(FlowbiteFormMixin, forms.ModelForm):
@@ -146,7 +137,7 @@ class ModelForm(FlowbiteFormMixin, forms.ModelForm):
         fields = ["llm_provider", "model_name", "model_api_key", "model_args", "model_preamble"]
         widgets = {
             'model_args': KeyValueWidget(),
-            "model_api_key": PartiallyMaskedTextInput(),
+            "model_api_key": forms.PasswordInput(render_value=True),
         }
         help_texts = {
             'llm_provider': 'Select the LLM provider you want to use.',
@@ -165,7 +156,7 @@ class EmbeddingForm(FlowbiteFormMixin, forms.ModelForm):
         fields = ["embedding_provider", "embedding_model", "embedding_api_key", "embedding_args"]
         widgets = {
             'embedding_args': KeyValueWidget(),
-            "embedding_api_key": PartiallyMaskedTextInput(),
+            "embedding_api_key": forms.PasswordInput(render_value=True),
         }
         help_texts = {
             'embedding_provider': 'Select the embedding provider you want to use.',

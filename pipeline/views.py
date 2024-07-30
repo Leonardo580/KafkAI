@@ -67,14 +67,26 @@ class UpdateAdvancedPipelineView(AdminRequiredMixin, SessionWizardView):
         ]
         context['headers'] = headers
         return context
+
     def done(self, form_list, **kwargs):
         instance = self.get_form_instance(0)
         for form in form_list:
             if form.is_valid():
                 for field, value in form.cleaned_data.items():
+                    if isinstance(value, dict):
+                        value = {k: self.convert_string(v) for k, v in value.items()}
                     setattr(instance, field, value)
         instance.save()
         return redirect(self.success_url)
+
+    def convert_string(self, value):
+        try:
+            return int(value)
+        except ValueError:
+            try:
+                return float(value)
+            except ValueError:
+                return value
 
 
 def test(request):

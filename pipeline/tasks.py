@@ -12,7 +12,8 @@ logger = logging.getLogger(__name__)
 def launch_pipeline_task(progress_id):
     progress = PipelineProgress.objects.get(pk=progress_id)
     pipeline_id = progress.pipeline.pk  # Store the ID, not the object
-    knowledge = progress.pipeline.knowledge.objects.get(pipeline=progress.pipeline).knowledge.all()
+    knowledge = progress.pipeline.knowledge.all()
+    print(knowledge)
     try:
         def progress_callback(current, total):
             percentage = int((current / total) * 100)
@@ -21,7 +22,8 @@ def launch_pipeline_task(progress_id):
             progress.progress = percentage
             progress.save()
 
-        bot = RAGRetriever()
+        config = progress.pipeline.config
+        bot = RAGRetriever(config)
         bot.embed_knowledge(knowledge, pipeline_id, progress_callback)
 
         progress.status = 'completed'

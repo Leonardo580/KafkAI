@@ -5,6 +5,8 @@ langchain-weaviate
 langchain-community
 langflow
 Cohere
+redis
+django-redis
 llama-index
 tavily-python
 psycopg2

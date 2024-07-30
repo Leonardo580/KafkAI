@@ -1,6 +1,9 @@
 import os
 from pprint import pprint
+from django.core.cache import cache
+
 from langchain.chains.history_aware_retriever import create_history_aware_retriever
+from langchain_community.embeddings import OpenAIEmbeddings, VoyageEmbeddings, OllamaEmbeddings
 from langgraph.checkpoint.aiosqlite import AsyncSqliteSaver
 from django.conf import settings
 from psycopg_pool import AsyncConnectionPool
@@ -83,22 +86,21 @@ def process_chat_history(msg):
 
 
 class RAGRetriever:
-    def __init__(self):
+    def __init__(self, config):
         # Load the configuration from the database
-        config = RAGRetrieverConfig.objects.first()
 
         if config.llm_provider == 'cohere':
             self.llm_model = ChatCohere(model=config.model_name,
                                         **config.model_args,
                                         cohere_api_key=config.model_api_key)
         elif config.llm_provider == 'anthropic':
-            self.llm_model = anthropic.ChatOpenAI(model=config.model_name, **config.model_args
-                                                  , )
+            self.llm_model = anthropic.ChatAnthropic(model=config.model_name, **config.model_args
+                                                     , anthropic_api_key=config.model_api_key)
         elif config.llm_provider == 'gpt':
-            # Configure for GPT
+            self.llm_model = ChatOpenAI(model=config.model_name, **config.model_args, openai_api_key=config.model_api_key)
             pass
         elif config.llm_provider == 'huggingface':
-            # Configure for HuggingFace
+            self.llm_model = ollama.ChatOllama(model=config.model_name, **config.model_args, ollama_api_key=config.model_api_key)
             pass
 
         preamble = config.model_preamble
@@ -109,7 +111,7 @@ class RAGRetriever:
 
         grad_preamble = config.grade_preamble
         self.grad_llm = self.llm_model
-        structured_llm_grader = self.grad_llm.with_structured_output(GradeDocuments, preamble=grad_preamble)
+        structured_llm_grader = self.grad_llm.with_structured_output(GradeDocuments)
         grad_prompt = ChatPromptTemplate.from_messages(
             [("human", config.grade_prompt), ]
         )
@@ -158,18 +160,17 @@ class RAGRetriever:
         )
 
         if config.embedding_provider == 'cohere':
-            self.cohere_embeddings = CohereEmbeddings(cohere_api_key=os.getenv('COHERE_API_KEY'))
-            self.cohere_embeddings.model = config.embedding_model
+            self.embeddings_model = CohereEmbeddings(**config.embedding_args, cohere_api_key=os.getenv('COHERE_API_KEY'))
+            self.embeddings_model.model = config.embedding_model
         elif config.embedding_provider == 'gpt':
-            # Configure for GPT embeddings
-            pass
+            self.embeddings_model = OpenAIEmbeddings(**config.embedding_args, openai_api_key=os.getenv('OPENAI_API_KEY'))
+            self.embeddings_model.model = config.embedding_model
         elif config.embedding_provider == 'claude':
-            # Configure for Claude embeddings
-            pass
+            self.embeddings_model = VoyageEmbeddings(**config.embedding_args, openai_api_key=os.getenv('OPENAI_API_KEY'))
+            self.embeddings_model.model = config.embedding_model
         elif config.embedding_provider == 'huggingface':
-            # Configure for HuggingFace embeddings
-            pass
-
+            self.embeddings_model = OllamaEmbeddings(**config.embedding_args, ollama_api_key=os.getenv('OLLA_API_KEY'))
+            self.embeddings_model.model = config.embedding_model
         self.ocr_url = config.ocr_url
         self.ocr_api_key = config.ocr_api_key
         self.weaviate_client = WeaviateConnector().get_instance().client
@@ -177,12 +178,12 @@ class RAGRetriever:
         self.retriever = WeaviateVectorStore(self.weaviate_client,
                                              "pipeline_chunks",
                                              "content",
-                                             embedding=self.cohere_embeddings)
+                                             embedding=self.embeddings_model)
 
         self.base_retriever = WeaviateVectorStore(self.weaviate_client,
                                                   "knowledge_base",
                                                   "answer",
-                                                  embedding=self.cohere_embeddings)
+                                                  embedding=self.embeddings_model)
 
         self._update_structured_llm_route()
         self.history_aware_retriever = create_history_aware_retriever(
@@ -232,7 +233,7 @@ class RAGRetriever:
                                      raise_on_error=True).load_data()
 
     def embed_knowledge(self, knowledge, pipeline_id, progress_callback=None):
-        text_splitter = SemanticChunker(self.cohere_embeddings)
+        text_splitter = SemanticChunker(self.embeddings_model)
         str_docs = [d.text for d in self.parse_files(knowledge)]
         with open("docs.md", "w") as f:
             f.write("\n".join(str_docs))
@@ -270,7 +271,7 @@ class RAGRetriever:
 
     def update_retriever(self, index_name, text_name, filters=None):
         self.retriever = WeaviateVectorStore(self.weaviate_client, index_name, text_name,
-                                             embedding=self.cohere_embeddings)
+                                             embedding=self.embeddings_model)
         self._update_structured_llm_route(filters)
 
     def _update_structured_llm_route(self, filters=None):
@@ -590,22 +591,33 @@ class GradeAnswer(BaseModel):
     )
 
 
-class LangGraphSingleton:
-    _instance = None
+class RAGRetrieverCacher:
 
     @staticmethod
-    def get_instance():
-        if LangGraphSingleton._instance is None:
-            LangGraphSingleton()
+    async def get_or_compile_graph(config):
+        rag = RAGRetriever(config)
 
-        return LangGraphSingleton._instance
+        # Convert config to a hashable structure
+        config_hashable = frozenset((key, getattr(config, key)) for key in dir(config) if
+                                    not key.startswith('__') and not callable(getattr(config, key)))
 
-    def __init__(self):
-        if LangGraphSingleton._instance is not None:
-            raise Exception("This class is a singleton!")
+        cache_key = f"langgraph_{hash(config_hashable)}"
+
+        # Use sync_to_async to get the cached graph
+        cached_graph = await sync_to_async(cache.get)(cache_key)
+        if cached_graph:
+            return cached_graph
+
+        # Ensure the result is fully evaluated
+        if callable(getattr(rag.build_pipeline_flow, "__await__", None)):
+            app = await rag.build_pipeline_flow()
         else:
-            self.rag_retriever = RAGRetriever()
-            LangGraphSingleton._instance = self
+            app = rag.build_pipeline_flow()
 
-    async def initialize(self):
-        self.app = await self.rag_retriever.build_pipeline_flow()
+        # Make sure app does not contain any coroutines before caching
+        if callable(getattr(app, "__await__", None)):
+            raise ValueError("The object to be cached contains an awaitable coroutine.")
+
+        # Use sync_to_async to set the cache
+        await sync_to_async(cache.set)(cache_key, app)
+        return app

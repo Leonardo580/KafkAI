@@ -4,7 +4,7 @@ import pprint
 from asgiref.sync import sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 from chat.models import Chat, Message
-from knowledge_base.ChatBot import RAGRetriever, get_chat_history, LangGraphSingleton
+from knowledge_base.ChatBot import RAGRetriever, get_chat_history, RAGRetrieverCacher
 from weaviate.classes.query import Filter
 from langchain.load.dump import dumps
 from langchain.schema import runnable
@@ -20,12 +20,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.chat_group_name,
             self.channel_name
         )
-        chat = await Chat.objects.aget(id=self.chat_id)
-        pipeline_id = await sync_to_async(lambda: chat.pipeline.id)()
-        instance = LangGraphSingleton.get_instance()
-        await instance.initialize()
-        self.llm_answer = instance.app
-        LangGraphSingleton.get_instance().rag_retriever.update_retriever("pipeline_chunks", "content", pipeline_id)
+        self.chat = await Chat.objects.aget(id=self.chat_id)
         await self.accept()
 
     async def receive(self, text_data):
@@ -53,12 +48,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
         message = data['message']
         sender = data['sender']
         config = {"configurable": {"thread_id": self.chat_id}}
+        pipeline_id = await sync_to_async(lambda: self.chat.pipeline.id)()
         if sender == 'user':
             chat = await sync_to_async(Chat.objects.get)(id=self.chat_id)
             user_message = await sync_to_async(Message.objects.create)(chat=chat, sender=sender, content=message)
-
+            rag_config = await sync_to_async(lambda: chat.pipeline.config)()
+            ragretriver = RAGRetriever(rag_config)
+            ragretriver.update_retriever("pipeline_chunks", "content", pipeline_id)
+            # llm_answer = await RAGRetrieverCacher.get_or_compile_graph(ragretriver)
+            llm_answer = await ragretriver.build_pipeline_flow()
             # Generate answer asynchronously
-            llm_answer = self.llm_answer
             chat_history = await get_chat_history(self.chat_id)
             # chat_history = [("human", "je m'appelle anas"), ("ai", "bonjour anas.")]
             llm_message = {}
