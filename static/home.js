@@ -1,5 +1,6 @@
 let ongoingStream = null;
 let currentStepElement = null; // Element to hold the current step message
+let current_chunks = ""
 const responses = []; // Store responses here
 let idCounter = 0; // Unique ID counter for bot messages
 let isWebSocketConnected = true; // Flag to track WebSocket connection status
@@ -11,6 +12,7 @@ const user_message = {
     "generate": "generating...",
     "search": "searching...",
 }
+
 function createChatWithPipeline(pipelineId) {
     const chatHistoryList = document.querySelector('.chat-history-list');
     const newChatEntry = document.createElement('li');
@@ -34,9 +36,9 @@ function createChatWithPipeline(pipelineId) {
             const contentBlock = document.querySelector('#main');
             contentBlock.innerHTML = data;
             const chat_id = contentBlock.children.item(0).id;
-             anchor.setAttribute('x-bind:class', `{ 'bg-blue-500 text-white': selectedChat === ${chat_id} }`);
-                anchor.setAttribute('x-on:click.prevent', `selectedChat = ${chat_id}; chat_messages(${chat_id})`);
-                initializeChat(chat_id);
+            anchor.setAttribute('x-bind:class', `{ 'bg-blue-500 text-white': selectedChat === ${chat_id} }`);
+            anchor.setAttribute('x-on:click.prevent', `selectedChat = ${chat_id}; chat_messages(${chat_id})`);
+            initializeChat(chat_id);
             anchor.addEventListener('click', () => {
                 initializeChat(chat_id);
             });
@@ -75,7 +77,7 @@ function chat_messages(chatId) {
 function initializeChat(chatId) {
     scrollToBottom();
 
-    const Form = document.getElementById('chat-form');
+    const form = document.getElementById('chat-form');
     const chatInput = document.getElementById('chat-input');
     const chatMessages = document.getElementById('chat-messages');
     const chatSocket = new WebSocket(
@@ -83,38 +85,37 @@ function initializeChat(chatId) {
         '/ws/chat/' + chatId + '/'
     );
 
-    // Handle WebSocket connection open
+    // WebSocket connection open
     chatSocket.onopen = function (e) {
         isWebSocketConnected = true;
         updateSubmitButtonState();
     };
 
-    // Handle WebSocket message
+    // WebSocket message handling
     chatSocket.onmessage = function (e) {
         const data = JSON.parse(e.data);
+
         if (data.type === 'progress') {
             updateSystemMessage(user_message[data.message], chatMessages);
         } else if (data.sender === 'llm') {
-            const chunk = JSON.parse(data.message);
-            if (chunk.event === 'on_chain_stream') {
+            // console.log(data);
+            const chunk = data.message;
+            if (data.event === 'on_chat_model_stream') {
                 removeLoadingWidget();
-                currentStepElement.remove()
-                ongoingStream = appendBotMessage("", idCounter, chatMessages);
-
-                updateBotMessage(chunk.data.chunk.generation, ongoingStream.id, chatMessages);
+                currentStepElement.remove();
+                updateBotMessage(current_chunks, chunk, ongoingStream.id, chatMessages);
+                current_chunks += chunk;
                 idCounter++;
+            } else if (data.event === 'on_chat_model_start') {
+                current_chunks = "";
+                ongoingStream = appendBotMessage("", idCounter, chatMessages);
+                removeLoadingWidget();
+                currentStepElement.remove();
             }
-            // else if (data.type === 'final_answer') {
-            //     removeLoadingWidget();
-            //     removeSystemMessage();
-            //     appendBotMessage(data.message, idCounter, chatMessages);
-            //     idCounter++;
-            //     ongoingStream = null;
-            // }
         }
     };
 
-    // Handle WebSocket close
+    // WebSocket close handling
     chatSocket.onclose = function (e) {
         console.error('Chat socket closed unexpectedly');
         isWebSocketConnected = false;
@@ -123,9 +124,20 @@ function initializeChat(chatId) {
     };
 
     // Form submission handling
-    Form.addEventListener('submit', (event) => {
+    form.addEventListener('submit', (event) => {
         event.preventDefault();
+        handleFormSubmit();
+    });
 
+    // Chat input keydown handling
+    chatInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            handleFormSubmit();
+        }
+    });
+
+    function handleFormSubmit() {
         if (!isWebSocketConnected) {
             alert("WebSocket connection is not open. Please try again later.");
             return;
@@ -143,12 +155,12 @@ function initializeChat(chatId) {
                 'sender': 'user'
             }));
 
-            Form.classList.add('animate');
+            form.classList.add('animate');
             setTimeout(() => {
-                Form.classList.remove('animate');
+                form.classList.remove('animate');
             }, 500);
         }
-    });
+    }
 }
 
 // Update the submit button state based on WebSocket connection status
@@ -160,7 +172,9 @@ function updateSubmitButtonState() {
         submitButton.setAttribute('disabled', 'disabled');
     }
 }
+
 let currentPage = 1;
+
 function setupInfiniteScroll(chatId) {
     const chatMessages = document.getElementById('chat-messages');
 
@@ -235,30 +249,41 @@ function appendUserMessage(message, chatMessages) {
 function appendBotMessage(message, botMessageId, chatMessages) {
     const botMessageContainer = document.createElement('div');
     botMessageContainer.id = botMessageId;
+    botMessageContainer.classList.add('message');
+    botMessageContainer.dataset.content = message;
 
-    botMessageContainer.classList.add('mb-4', 'flex', 'rounded-xl', 'bg-slate-50', 'px-2', 'py-6', 'dark:bg-slate-900', 'sm:px-4', 'chat-message');
-    const copyButtonContainer = document.createElement("div");
-    copyButtonContainer.classList.add("mb-2","flex","w-full","flex-row","justify-end","gap-x-2","text-slate-500");
-    const copyButton = document.createElement("button");
-    copyButton.classList.add("hover:text-blue-600");
-    copyButton.innerHTML = ` 
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                                <path d="M8 8m0 2a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2z"></path>
-                                <path d="M16 8v-2a2 2 0 0 0 -2 -2h-8a2 2 0 0 0 -2 2v8a2 2 0 0 0 2 2h2"></path>
-                            </svg>
-    `
-    copyButton.addEventListener("click", function (e){
+    // Copy button container
+    const copyButtonContainer = document.createElement('div');
+    copyButtonContainer.classList.add('mb-2', 'flex', 'w-full', 'flex-row', 'justify-end', 'gap-x-2', 'text-slate-500');
+
+    // Copy button
+    const copyButton = document.createElement('button');
+    copyButton.classList.add('hover:text-blue-600');
+    copyButton.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M8 8m0 2a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2z"></path>
+            <path d="M16 8v-2a2 2 0 0 0 -2 -2h-8a2 2 0 0 0 -2 2v8a2 2 0 0 0 2 2h2"></path>
+        </svg>
+    `;
+    copyButton.addEventListener('click', function (e) {
         e.preventDefault();
-        let content = botMessageContent.innerText;
-        navigator.clipboard.writeText(content)
-    })
+        navigator.clipboard.writeText(message);
+    });
+
     copyButtonContainer.appendChild(copyButton);
     botMessageContainer.appendChild(copyButtonContainer);
+
+    // Message content container
+    const messageContentContainer = document.createElement('div');
+    messageContentContainer.classList.add('mb-4', 'flex', 'rounded-xl', 'bg-slate-50', 'px-2', 'py-6', 'dark:bg-slate-900', 'sm:px-4');
+
+    // Bot avatar
     const botAvatar = document.createElement('img');
-    botAvatar.classList.add('mr-2', 'flex', 'h-8', 'w-8', 'rounded-full', 'sm:mr-4');
+    botAvatar.classList.add('mr-2', 'flex-shrink-0', 'h-8', 'w-8', 'rounded-full', 'sm:mr-4');
     botAvatar.src = bot_avatar_url;
 
+    // Bot message content
     const botMessageContent = document.createElement('div');
     botMessageContent.classList.add('flex', 'max-w-3xl', 'items-center', 'rounded-xl');
 
@@ -267,12 +292,14 @@ function appendBotMessage(message, botMessageId, chatMessages) {
     botMessage.innerHTML = marked.parse(message);
 
     botMessageContent.appendChild(botMessage);
-    botMessageContainer.appendChild(botAvatar);
-    botMessageContainer.appendChild(botMessageContent);
+    messageContentContainer.appendChild(botAvatar);
+    messageContentContainer.appendChild(botMessageContent);
+    botMessageContainer.appendChild(messageContentContainer);
+
     chatMessages.appendChild(botMessageContainer);
     scrollToBottom();
 
-    return { id: botMessageId };
+    return {id: botMessageId};
 }
 
 function updateSystemMessage(message, chatMessages) {
@@ -344,15 +371,19 @@ function prependBotMessage(message, botMessageId, chatMessages) {
     // Prepend the message container to the chatMessages
     chatMessages.insertBefore(botMessageContainer, chatMessages.firstChild);
 
-    return { id: botMessageId };
+    return {id: botMessageId};
 }
 
-function updateBotMessage(chunk, botMessageId) {
+function updateBotMessage(current_chucks, chunk, botMessageId) {
     const botMessageContainer = document.getElementById(botMessageId);
     const botMessageText = botMessageContainer.querySelector('.bot-message-text');
 
     if (botMessageText) {
-        botMessageText.innerHTML = marked.parse(botMessageText.innerHTML + chunk);
+        // Combine the current innerHTML with the new chunk
+        const updatedContent = current_chucks + chunk;
+
+
+        botMessageText.innerHTML = marked.parse(updatedContent);
     }
 }
 

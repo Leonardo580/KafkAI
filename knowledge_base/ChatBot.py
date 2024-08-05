@@ -1,7 +1,7 @@
 import os
 from pprint import pprint
 from django.core.cache import cache
-
+from langchain_experimental.llms.ollama_functions import OllamaFunctions
 from langchain.chains.history_aware_retriever import create_history_aware_retriever
 from langchain_community.embeddings import OpenAIEmbeddings, VoyageEmbeddings, OllamaEmbeddings
 from langgraph.checkpoint.aiosqlite import AsyncSqliteSaver
@@ -48,7 +48,7 @@ from .weaviate_init import WeaviateConnector
 from langchain_cohere import ChatCohere
 from langchain_community.chat_models import ChatOpenAI
 from langchain_community.chat_models import anthropic
-from langchain_community.chat_models import ollama
+# from langchain_community.chat_models import ChatOllama
 
 from langchain_cohere.embeddings import CohereEmbeddings
 from langchain_weaviate.vectorstores import WeaviateVectorStore
@@ -85,137 +85,7 @@ def process_chat_history(msg):
         return AIMessage(content=msg[1])
 
 
-class RAGRetriever:
-    def __init__(self, config):
-        # Load the configuration from the database
-
-        if config.llm_provider == 'cohere':
-            self.llm_model = ChatCohere(model=config.model_name,
-                                        **config.model_args,
-                                        cohere_api_key=config.model_api_key)
-        elif config.llm_provider == 'anthropic':
-            self.llm_model = anthropic.ChatAnthropic(model=config.model_name, **config.model_args
-                                                     , anthropic_api_key=config.model_api_key)
-        elif config.llm_provider == 'gpt':
-            self.llm_model = ChatOpenAI(model=config.model_name, **config.model_args, openai_api_key=config.model_api_key)
-            pass
-        elif config.llm_provider == 'huggingface':
-            self.llm_model = ollama.ChatOllama(model=config.model_name, **config.model_args, ollama_api_key=config.model_api_key)
-            pass
-
-        preamble = config.model_preamble
-        self.cohere_model = self.llm_model.bind(preamble=preamble)
-
-        rag_preamble = config.model_preamble
-        self.rag_cohere_model = self.llm_model.bind(preamble=rag_preamble)
-
-        grad_preamble = config.grade_preamble
-        self.grad_llm = self.llm_model
-        structured_llm_grader = self.grad_llm.with_structured_output(GradeDocuments)
-        grad_prompt = ChatPromptTemplate.from_messages(
-            [("human", config.grade_prompt), ]
-        )
-
-        self.route_preamble = config.route_question_preamble
-        self.route_llm = self.llm_model
-        history_prompt = """
-        Étant donné un historique de conversation et la dernière question de l'utilisateur qui pourrait se référer au contexte de l'historique de conversation,
-        formulez une question autonome qui peut être comprise sans l'historique de conversation. 
-        Ne répondez PAS à la question, reformulez-la seulement si nécessaire et sinon, renvoyez-la telle quelle.
-    """
-        contextualize_q_prompt = ChatPromptTemplate.from_messages(
-            [
-                ("system", history_prompt),
-                MessagesPlaceholder("chat_history"),
-                ("human", "{input}"),
-            ]
-        )
-
-        route_prompt = ChatPromptTemplate.from_messages(
-            [
-                ("system", history_prompt),
-                MessagesPlaceholder("chat_history"),
-                ("human", "{question}"),
-            ]
-        )
-
-        hallucination_preamble = config.hallucination_preamble
-        self.hallucination_llm = self.llm_model
-        structured_llm_hallucination = self.hallucination_llm.with_structured_output(
-            GradeDocuments, preamble=hallucination_preamble
-        )
-        hallucination_prompt = ChatPromptTemplate.from_messages(
-            ("human", config.hallucination_prompt),
-        )
-
-        answer_preamble = config.answer_preamble
-        self.answer_grader_llm = self.llm_model
-        structured_llm_answer_grader = self.answer_grader_llm.with_structured_output(
-            GradeAnswer, preamble=answer_preamble
-        )
-        answer_prompt = ChatPromptTemplate.from_messages(
-            [
-                ("human", config.answer_prompt),
-            ]
-        )
-
-        if config.embedding_provider == 'cohere':
-            self.embeddings_model = CohereEmbeddings(**config.embedding_args, cohere_api_key=os.getenv('COHERE_API_KEY'))
-            self.embeddings_model.model = config.embedding_model
-        elif config.embedding_provider == 'gpt':
-            self.embeddings_model = OpenAIEmbeddings(**config.embedding_args, openai_api_key=os.getenv('OPENAI_API_KEY'))
-            self.embeddings_model.model = config.embedding_model
-        elif config.embedding_provider == 'claude':
-            self.embeddings_model = VoyageEmbeddings(**config.embedding_args, openai_api_key=os.getenv('OPENAI_API_KEY'))
-            self.embeddings_model.model = config.embedding_model
-        elif config.embedding_provider == 'huggingface':
-            self.embeddings_model = OllamaEmbeddings(**config.embedding_args, ollama_api_key=os.getenv('OLLA_API_KEY'))
-            self.embeddings_model.model = config.embedding_model
-        self.ocr_url = config.ocr_url
-        self.ocr_api_key = config.ocr_api_key
-        self.weaviate_client = WeaviateConnector().get_instance().client
-
-        self.retriever = WeaviateVectorStore(self.weaviate_client,
-                                             "pipeline_chunks",
-                                             "content",
-                                             embedding=self.embeddings_model)
-
-        self.base_retriever = WeaviateVectorStore(self.weaviate_client,
-                                                  "knowledge_base",
-                                                  "answer",
-                                                  embedding=self.embeddings_model)
-
-        self._update_structured_llm_route()
-        self.history_aware_retriever = create_history_aware_retriever(
-            self.cohere_model, self.retriever.as_retriever(), contextualize_q_prompt
-        )
-
-        self.rag_weaviate = self.weaviate_client.collections.get("knowledge_base")
-        self.llm_chain = self.prompt | self.cohere_model | StrOutputParser()
-        self.rag_chain = self.rag_prompt | self.rag_cohere_model | StrOutputParser()
-        self.retrieval_grader = grad_prompt | structured_llm_grader
-        self.web_search_tool = TavilySearchResults()
-        self.web_search_tool.api_wrapper = TavilySearchAPIWrapper()
-
-        self.question_router = route_prompt | self.structured_llm_route
-        self.hallucination_grader = hallucination_prompt | structured_llm_hallucination
-        self.answer_grader = answer_prompt | structured_llm_answer_grader
-
-    def prompt(self, x):
-        return ChatPromptTemplate.from_messages(
-            [HumanMessage(f"Question: {x['question']} \nAnswer: ")]
-        )
-
-    def rag_prompt(self, x):
-        return ChatPromptTemplate.from_messages(
-            [
-                HumanMessage(
-                    f"Question: {x['question']} \nAnswer: ",
-                    additional_kwargs={"documents": x["documents"]},
-                )
-            ]
-        )
-
+class RAGPipeline:
     def parse_files(self, knowledge):
         # TODO: add support for other file types
         # TODO: config the language to French
@@ -542,6 +412,145 @@ class RAGRetriever:
         app = workflow.compile(checkpointer=memory)
         print("compiled successfully")
         return app
+
+
+class RAGRetriever(RAGPipeline):
+    def __init__(self, config):
+        # Load the configuration from the database
+
+        if config.llm_provider == 'cohere':
+            self.llm_model = ChatCohere(model=config.model_name,
+                                        **config.model_args,
+                                        cohere_api_key=config.model_api_key)
+
+        elif config.llm_provider == 'anthropic':
+            self.llm_model = anthropic.ChatAnthropic(model=config.model_name, **config.model_args
+                                                     , anthropic_api_key=config.model_api_key)
+        elif config.llm_provider == 'gpt':
+            self.llm_model = ChatOpenAI(model=config.model_name, **config.model_args,
+                                        openai_api_key=config.model_api_key)
+
+        elif config.llm_provider == 'huggingface':
+            self.llm_model = OllamaFunctions(model=config.model_name, **config.model_args, format="json")
+
+        preamble = config.model_preamble
+        self.cohere_model = self.llm_model.bind(preamble=preamble)
+
+        rag_preamble = config.model_preamble
+        self.rag_cohere_model = self.llm_model.bind(preamble=rag_preamble)
+
+        grad_preamble = config.grade_preamble
+        self.grad_llm = self.llm_model
+        structured_llm_grader = self.grad_llm.with_structured_output(GradeDocuments, preamble=grad_preamble)
+        # structured_llm_grader = self.grad_llm.with_structured_output(GradeDocuments)
+        grad_prompt = ChatPromptTemplate.from_messages(
+            [("human", config.grade_prompt), ]
+        )
+
+        self.route_preamble = config.route_question_preamble
+        self.route_llm = self.llm_model
+        history_prompt = """
+        Étant donné un historique de conversation et la dernière question de l'utilisateur qui pourrait se référer au contexte de l'historique de conversation,
+        formulez une question autonome qui peut être comprise sans l'historique de conversation. 
+        Ne répondez PAS à la question, reformulez-la seulement si nécessaire et sinon, renvoyez-la telle quelle.
+    """
+        contextualize_q_prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", history_prompt),
+                MessagesPlaceholder("chat_history"),
+                ("human", "{input}"),
+            ]
+        )
+
+        route_prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", history_prompt),
+                MessagesPlaceholder("chat_history"),
+                ("human", "{question}"),
+            ]
+        )
+
+        hallucination_preamble = config.hallucination_preamble
+        self.hallucination_llm = self.llm_model
+        structured_llm_hallucination = self.hallucination_llm.with_structured_output(
+            GradeDocuments, preamble=hallucination_preamble
+            # GradeDocuments
+        )
+        hallucination_prompt = ChatPromptTemplate.from_messages(
+            ("human", config.hallucination_prompt),
+        )
+
+        answer_preamble = config.answer_preamble
+        self.answer_grader_llm = self.llm_model
+        structured_llm_answer_grader = self.answer_grader_llm.with_structured_output(
+            GradeAnswer, preamble=answer_preamble
+            # GradeAnswer
+        )
+        answer_prompt = ChatPromptTemplate.from_messages(
+            [
+                ("human", config.answer_prompt),
+            ]
+        )
+
+        if config.embedding_provider == 'cohere':
+            self.embeddings_model = CohereEmbeddings(
+                                                     cohere_api_key=config.embedding_api_key)
+            self.embeddings_model.model = config.embedding_model
+        elif config.embedding_provider == 'gpt':
+            self.embeddings_model = OpenAIEmbeddings(**config.embedding_args,
+                                                     openai_api_key=config.embedding_api_key)
+            self.embeddings_model.model = config.embedding_model
+        elif config.embedding_provider == 'claude':
+            self.embeddings_model = VoyageEmbeddings(**config.embedding_args,
+                                                     anthropic_api_key=config.embedding_api_key)
+            self.embeddings_model.model = config.embedding_model
+        elif config.embedding_provider == 'huggingface':
+            self.embeddings_model = OllamaEmbeddings(**config.embedding_args)
+            self.embeddings_model.model = config.embedding_model
+        self.ocr_url = config.ocr_url
+        self.ocr_api_key = config.ocr_api_key
+        self.weaviate_client = WeaviateConnector().get_instance().client
+
+        self.retriever = WeaviateVectorStore(self.weaviate_client,
+                                             "pipeline_chunks",
+                                             "content",
+                                             embedding=self.embeddings_model)
+
+        self.base_retriever = WeaviateVectorStore(self.weaviate_client,
+                                                  "knowledge_base",
+                                                  "answer",
+                                                  embedding=self.embeddings_model)
+
+        self._update_structured_llm_route()
+        self.history_aware_retriever = create_history_aware_retriever(
+            self.cohere_model, self.retriever.as_retriever(), contextualize_q_prompt
+        )
+
+        self.rag_weaviate = self.weaviate_client.collections.get("knowledge_base")
+        self.llm_chain = self.prompt | self.cohere_model | StrOutputParser()
+        self.rag_chain = self.rag_prompt | self.rag_cohere_model | StrOutputParser()
+        self.retrieval_grader = grad_prompt | structured_llm_grader
+        self.web_search_tool = TavilySearchResults()
+        self.web_search_tool.api_wrapper = TavilySearchAPIWrapper()
+
+        self.question_router = route_prompt | self.structured_llm_route
+        self.hallucination_grader = hallucination_prompt | structured_llm_hallucination
+        self.answer_grader = answer_prompt | structured_llm_answer_grader
+
+    def prompt(self, x):
+        return ChatPromptTemplate.from_messages(
+            [HumanMessage(f"Question: {x['question']} \nAnswer: ")]
+        )
+
+    def rag_prompt(self, x):
+        return ChatPromptTemplate.from_messages(
+            [
+                HumanMessage(
+                    f"Question: {x['question']} \nAnswer: ",
+                    additional_kwargs={"documents": x["documents"]},
+                )
+            ]
+        )
 
 
 class GraphState(TypedDict):
