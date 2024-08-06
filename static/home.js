@@ -1,5 +1,6 @@
 let ongoingStream = null;
 let currentStepElement = null; // Element to hold the current step message
+let currentPage = 1;
 let current_chunks = ""
 const responses = []; // Store responses here
 let idCounter = 0; // Unique ID counter for bot messages
@@ -76,7 +77,7 @@ function chat_messages(chatId) {
 
 function initializeChat(chatId) {
     scrollToBottom();
-
+    currentPage = 1;
     const form = document.getElementById('chat-form');
     const chatInput = document.getElementById('chat-input');
     const chatMessages = document.getElementById('chat-messages');
@@ -173,9 +174,10 @@ function updateSubmitButtonState() {
     }
 }
 
-let currentPage = 1;
+
 
 function setupInfiniteScroll(chatId) {
+
     const chatMessages = document.getElementById('chat-messages');
 
     let loading = false;

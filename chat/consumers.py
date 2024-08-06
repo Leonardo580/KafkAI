@@ -48,7 +48,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def handle_chat(self, data):
         chat = await sync_to_async(Chat.objects.get)(id=self.chat_id)
         rag_config = await sync_to_async(lambda: chat.pipeline.config)()
-        if rag_config.llm_provider == 'huggingface':
+        if rag_config.llm_provider == 'ollama':
             await self.handle_chat_local(data)
         else:
             await self.handle_chat_cohere(data)
@@ -132,7 +132,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
             llm_message = {}
             pipeline_id = await sync_to_async(lambda: chat.pipeline.id)()
             steps = set()
-
             async for chunk in llm_answer.astream_events(
                     input={'question': message}, config=config,
                     version='v2'
@@ -149,9 +148,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     steps.add(node_name)
                 # print("1----", chunk["metadata"].get("langgraph_node") in ["off_topic_response", "generate_answer"])
                 # print("2----", chunk["tags"], chunk["tags"] == ['seq:step:1', 'seq:step:2'])
+
                 if chunk["metadata"].get("langgraph_node") in ["off_topic_response", "generate_answer"] and (chunk[
-                    "tags"] == ["seq:step:1", "seq:step:2"] or chunk["tags"] == ["seq:step:2", "seq:step:1"]):
-                    print(chunk)
+                    "tags"] == ["seq:step:1", "seq:step:2"] or chunk["tags"] == ["seq:step:2", "seq:step:1"]) or\
+                    chunk["tags"] ==  ["seq:step:2"]:
                     if chunk["event"] in ["on_chat_model_stream", "on_chat_model_start"]:
                         msg = chunk["data"].get("chunk", "")
                         msg = msg.content if not isinstance(msg, str) else msg

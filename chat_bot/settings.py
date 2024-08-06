@@ -27,7 +27,7 @@ SECRET_KEY = os.getenv('ENCRYPTION_KEY') or get_random_secret_key()
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["192.168.1.29", "192.168.101.65", "localhost"]
+ALLOWED_HOSTS = ["192.168.1.29", "192.168.101.65", "localhost", "localhost:11434"]
 
 # Application definition
 

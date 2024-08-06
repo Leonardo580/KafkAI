@@ -68,13 +68,13 @@ class RAGRetrieverConfig(models.Model):
         ('cohere', 'Cohere'),
         ('anthropic', 'Anthropic'),
         ('gpt', 'GPT'),
-        ('huggingface', 'HuggingFace'),
+        ('ollama', 'Ollama'),
     ]
     embedding_choices = [
         ('cohere', 'Cohere'),
         ('gpt', 'GPT'),
         ('claude', 'Claude'),
-        ('huggingface', 'HuggingFace'),
+        ('ollama', 'Ollama'),
     ]
 
     llm_provider = models.CharField(max_length=50, choices=model_choices, default='cohere')
@@ -116,9 +116,9 @@ class RAGRetrieverConfig(models.Model):
     answer_prompt = models.TextField(
         default="Question de l'utilisateur : \n\n {question} \n\n Génération LLM : {generation}")
     ocr_url = models.URLField(default="https://api.llamacloud.ai/v1/pdf-extract")
-    ocr_api_key = EncryptedTextField(default=os.getenv('COHERE_API_KEY'))
-    model_api_key = EncryptedTextField(default=os.getenv('COHERE_API_KEY'))
-    embedding_api_key = EncryptedTextField(default=os.getenv('COHERE_API_KEY'))
+    ocr_api_key = EncryptedTextField(default=os.getenv('OCRENGINE_API_KEY'), blank=True, null=True)
+    model_api_key = EncryptedTextField(default=os.getenv('COHERE_API_KEY'), blank=True, null=True)
+    embedding_api_key = EncryptedTextField(default=os.getenv('COHERE_API_KEY'), blank=True, null=True)
 
     def set_api_key(self, key_type, value):
         setattr(self, f'{key_type}_api_key', value)

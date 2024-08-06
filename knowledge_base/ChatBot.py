@@ -430,7 +430,7 @@ class RAGRetriever(RAGPipeline):
             self.llm_model = ChatOpenAI(model=config.model_name, **config.model_args,
                                         openai_api_key=config.model_api_key)
 
-        elif config.llm_provider == 'huggingface':
+        elif config.llm_provider == 'ollama':
             self.llm_model = OllamaFunctions(model=config.model_name, **config.model_args, format="json")
 
         preamble = config.model_preamble
@@ -504,7 +504,7 @@ class RAGRetriever(RAGPipeline):
             self.embeddings_model = VoyageEmbeddings(**config.embedding_args,
                                                      anthropic_api_key=config.embedding_api_key)
             self.embeddings_model.model = config.embedding_model
-        elif config.embedding_provider == 'huggingface':
+        elif config.embedding_provider == 'ollama':
             self.embeddings_model = OllamaEmbeddings(**config.embedding_args)
             self.embeddings_model.model = config.embedding_model
         self.ocr_url = config.ocr_url

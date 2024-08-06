@@ -1,4 +1,6 @@
+import requests
 from django.shortcuts import render, get_object_or_404, redirect
+from rest_framework.views import APIView
 from django.urls import reverse_lazy
 from django.views.generic import ListView
 from django.views.generic.edit import CreateView, FormView, DeleteView, UpdateView
@@ -6,6 +8,7 @@ from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
 from django.views import View
 from react.render import render_component
+from rest_framework.permissions import IsAuthenticated
 
 from .models import Pipeline, PipelineProgress, RAGRetrieverConfig
 from .serializers import PipelineSerializer
@@ -65,8 +68,18 @@ class UpdateAdvancedPipelineView(AdminRequiredMixin, SessionWizardView):
             "This form is used to configure hallucination detection settings. Users can set the preamble text for hallucination detection and define the hallucination detection prompt.",
             "This form allows users to configure the settings for answering questions. It includes fields for setting the preamble text for answering questions and specifying the answering prompt."
         ]
+        config = self.get_form_instance()
+        context['model_name'] = config.model_name
         context['headers'] = headers
+        context['ollama_choices'] = self.ollama_models()
+
         return context
+
+    def ollama_models(self):
+        response = requests.get('http://localhost:11434/api/tags/')
+        response.raise_for_status()
+        models = response.json()
+        return [(model['name'], model['name']) for model in models["models"]]
 
     def done(self, form_list, **kwargs):
         instance = self.get_form_instance(0)
@@ -87,6 +100,25 @@ class UpdateAdvancedPipelineView(AdminRequiredMixin, SessionWizardView):
                 return float(value)
             except ValueError:
                 return value
+
+
+class ListLLMConfigView(AdminRequiredMixin, viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request, *args, **kwargs):
+        try:
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+            response = requests.get('http://localhost:11434/api/tags/', headers=headers)
+            print(response)
+            response.raise_for_status()
+            models = response.json()
+            models = [(model['name'], model['name']) for model in models["models"]]
+            return Response(models)
+        except Exception as e:
+            print(f"Error fetching model choices: {e}")
+            return Response([])
 
 
 def test(request):

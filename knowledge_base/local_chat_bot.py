@@ -19,7 +19,7 @@ from langchain_core.tools import create_retriever_tool
 from langchain_experimental.llms.ollama_functions import OllamaFunctions, convert_to_ollama_tool
 from langchain_weaviate import WeaviateVectorStore
 
-from .ChatBot import RAGRetriever, GradeDocuments, GradeAnswer, RAGPipeline, web_search
+from .ChatBot import RAGRetriever, GradeAnswer, RAGPipeline, web_search
 from .weaviate_init import WeaviateConnector
 
 
@@ -27,7 +27,7 @@ class LocalChatBot(RAGPipeline):
     def __init__(self, config):
         # Load the configuration from the database
 
-        assert config.llm_provider == 'huggingface'
+        assert config.llm_provider == 'ollama'
         self.llm_model = ChatOllama(model=config.model_name)
 
         preamble = config.model_preamble
@@ -100,9 +100,13 @@ Fournissez la note binaire sous forme de JSON avec une seule clé 'score' sans p
             ]
         )
 
-        assert config.embedding_provider == 'huggingface'
-        self.embeddings_model = CohereEmbeddings(cohere_api_key=os.getenv('COHERE_API_KEY'))
-        self.embeddings_model.model = "embed-multilingual-v3.0"
+        # assert config.embedding_provider == 'huggingface'
+        if config.embedding_provider == "ollama":
+            self.embeddings_model = OllamaEmbeddings()
+            self.embeddings_model.model = config.embedding_model
+        elif config.embedding_provider == "cohere":
+            self.embeddings_model = CohereEmbeddings()
+            self.embeddings_model.model = config.embedding_model
         self.ocr_url = config.ocr_url
         self.ocr_api_key = config.ocr_api_key
         self.weaviate_client = WeaviateConnector().get_instance().client
@@ -150,8 +154,8 @@ Fournissez la note binaire sous forme de JSON avec une seule clé 'score' sans p
 
     def update_retriever(self, index_name, text_name, filters=None):
         self.retriever = WeaviateVectorStore(self.weaviate_client, index_name, text_name,
-                                             embedding=self.embeddings_model)
-        self._update_structured_llm_route(filters)
+                                             embedding=self.embeddings_model).as_retriever()
+        # self._update_structured_llm_route(filters)
 
     def _update_structured_llm_route(self, filters=None):
         self.retriever = MergerRetriever(
@@ -180,11 +184,11 @@ Fournissez la note binaire sous forme de JSON avec une seule clé 'score' sans p
             input_variables=["question", "documents"],
         )
         llm = self.llm_model
-        structured_llm = llm.with_structured_output(GradeQuestion)
+        structured_llm = llm.with_structured_output(GradeDocuments)
         grader_llm = prompt | structured_llm
         result = grader_llm.invoke({"question": question, "documents": documents})
-        print(f"QUESTION et NOTE : {question} - {result.score}")
-        state["on_topic"] = result.score
+        print(f"QUESTION et NOTE : {question} - {result.score if result else 'no'}")
+        state["on_topic"] = result.score if result else 'non'
         return state
 
     def on_topic_router(self, state: AgentState):
@@ -339,16 +343,16 @@ class AgentState(TypedDict):
 
 
 class GradeQuestion(BaseModel):
-    """Boolean value to check whether a question is releated to the restaurant Bella Vista"""
+    """Valeur booléenne pour vérifier si une question est liée au restaurant Bella Vista"""
 
     score: str = Field(
-        description="Question is about restaurant? If yes -> 'Yes' if not -> 'No'"
+        description="La question concerne-t-elle les restaurant ? Si oui -> 'oui' si non -> 'non'"
     )
 
 
 class GradeDocuments(BaseModel):
-    """Boolean values to check for relevance on retrieved documents."""
+    """Valeurs booléennes pour vérifier la pertinence des documents récupérés."""
 
     score: str = Field(
-        description="Documents are relevant to the question, 'Yes' or 'No'"
+        description="Les documents sont pertinents pour la question, 'oui' ou 'non'"
     )

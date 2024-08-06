@@ -73,7 +73,11 @@ class MessageViewSet(viewsets.ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         chat_id = kwargs.get('chat_id')
-        queryset = Message.objects.filter(chat_id=chat_id).order_by('created_at')
+        total_messages = Message.objects.filter(chat_id=chat_id).count()
+
+        # Get all messages except for the last 10
+        messages = Message.objects.filter(chat_id=chat_id).order_by('-created_at')[10:]
+        queryset = messages[::-1]
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)

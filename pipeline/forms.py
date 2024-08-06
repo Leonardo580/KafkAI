@@ -1,5 +1,6 @@
 import json
 
+import requests
 from django import forms
 from django_select2.forms import Select2MultipleWidget
 from .models import knowledge_models, RAGRetrieverConfig
@@ -132,6 +133,7 @@ class KeyValueWidget(forms.Widget):
 
 
 class ModelForm(FlowbiteFormMixin, forms.ModelForm):
+    model_name = forms.CharField(widget=forms.Select)
     class Meta:
         model = RAGRetrieverConfig
         fields = ["llm_provider", "model_name", "model_api_key", "model_args", "model_preamble"]
@@ -141,11 +143,24 @@ class ModelForm(FlowbiteFormMixin, forms.ModelForm):
         }
         help_texts = {
             'llm_provider': 'Select the LLM provider you want to use.',
-            'model_name': 'Enter the name of the model.',
-            'model_api_key': 'Enter the API key for the model.',
             'model_args': 'Enter the arguments for the model as key-value pairs.',
+            "model_api_key": 'Enter the API key for the model if needed.',
             'model_preamble': 'Enter the preamble text for the model.',
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
+    def get_model_choices(self):
+        try:
+            response = requests.get('http://localhost:11434/api/tags/')
+            response.raise_for_status()
+            models = response.json()
+            return [(model['name'], model['name']) for model in models["models"]]
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching model choices: {e}")
+            return []
 
 
 class EmbeddingForm(FlowbiteFormMixin, forms.ModelForm):

@@ -7,6 +7,8 @@ from .views import GetPipelinesView
 # Create a router and register the viewset
 router = DefaultRouter()
 router.register(r'', GetPipelinesView, basename='pipeline')
+router_2 = DefaultRouter()
+router_2.register(r'', views.ListLLMConfigView, basename='llm_config')
 urlpatterns = [
     path('show/', views.PipelineView.as_view(), name='show_pipeline'),
     path('create_simple_pipeline/', views.CreateSimplePipelineView.as_view(), name='create_simple_pipeline'),
@@ -18,5 +20,6 @@ urlpatterns = [
     path('launch_pipeline/<int:pk>/', views.LaunchPipelineView.as_view(), name='launch_pipeline'),
     path('get_progress/<int:pk>/', views.GetProgressView.as_view(), name='get_progress'),
     path('list/', include(router.urls)),
+    path("models/", include(router_2.urls)),
 
 ]

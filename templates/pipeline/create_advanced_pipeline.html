@@ -53,9 +53,9 @@
                                class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                             {{ field.label }}
                         </label>
-                    <div class="text-red-500">
-                        {{ field.errors }}
-                    </div>
+                        <div class="text-red-500">
+                            {{ field.errors }}
+                        </div>
                         {{ field }}
                         {% if field.help_text %}
                             <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ field.help_text|safe }}</p>
@@ -83,6 +83,7 @@
                 </button>
             </div>
         </form>
+    
     </div>
     <div id="surveyContainer"></div>
 {% endblock %}
@@ -92,6 +93,63 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/survey-jquery/1.11.8/survey.jquery.min.js"></script>
     <script src="https://unpkg.com/survey-knockout-ui/survey-knockout-ui.min.js"></script>
     <script>
+        document.addEventListener('DOMContentLoaded', function () {
+    const modelNameField = document.getElementById('id_0-model_name');
 
-    </script>
+    // Get the DOM elements
+    const llmProviderField = document.getElementById('id_0-llm_provider');
+    
+    const initialModelName = "{{ model_name|safe}}" // Store the initial value
+
+        console.log(initialModelName)
+    // Define the choices object
+      const choices = {
+        cohere: ["Aya", "command-r", "command-r-plus"],
+        gpt: ["gpt-3.5-turbo", "gpt-3.5-turbo-16k", "gpt-4"],
+        anthropic: ["claude-v1", "claude-v1.2", "claude-instant-v1"],
+        ollama: {{ ollama_choices | safe }}
+    };
+
+    // Function to update modelNameField
+    function updateModelNameField() {
+        const selectedProvider = llmProviderField.value;
+        const selectedChoices = choices[selectedProvider];
+
+        // Clear current options
+        modelNameField.innerHTML = '';
+
+        // If the selected provider is 'ollama' and it's a promise
+        if (selectedProvider === 'ollama' && selectedChoices instanceof Promise) {
+            selectedChoices.then(models => {
+                models.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model;
+                    option.textContent = model;
+                    if (model === initialModelName) {
+                        option.selected = true; // Set initial value as selected
+                    }
+                    modelNameField.appendChild(option);
+                });
+            });
+        } else if (Array.isArray(selectedChoices)) {
+            // For other providers, we can directly use the array
+            selectedChoices.forEach(model => {
+                const option = document.createElement('option');
+                option.value = model;
+                option.textContent = model;
+                if (model === initialModelName) {
+                    option.selected = true; // Set initial value as selected
+                }
+                modelNameField.appendChild(option);
+            });
+        }
+    }
+
+    // Add event listener to llmProviderField
+    llmProviderField.addEventListener('change', updateModelNameField);
+
+    // Initial update
+    updateModelNameField();
+});
+</script>
 {% endblock %}
