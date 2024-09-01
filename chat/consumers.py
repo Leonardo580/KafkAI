@@ -1,11 +1,10 @@
 import json
 import pprint
-
 from asgiref.sync import sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 from chat.models import Chat, Message
 from knowledge_base.ChatBot import RAGRetriever, get_chat_history, RAGRetrieverCacher
-from knowledge_base.local_chat_bot import LocalChatBot
+from knowledge_base.local_chat_bot import LocalChatBot, AgentState
 from weaviate.classes.query import Filter
 from langchain.load.dump import dumps
 from langchain.schema import runnable
@@ -88,13 +87,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
                             'type': 'progress'
                         }))
                     steps.add(node_name)
+                print(chunk)
+                if chunk["metadata"].get("langgraph_node") in ["llm_fallback", "generate"] and (chunk[
+                    "tags"] == ["seq:step:2", "seq:step:1"] or chunk["tags"] == ["seq:step:1", "seq:step:2"]):
 
-                if chunk["metadata"].get("langgraph_node") in ["llm_fallback", "generate"] and chunk[
-                    "tags"] == ["seq:step:2", "seq:step:1"]:
                     if chunk["event"] in ["on_chat_model_stream", "on_chat_model_start"]:
                         msg = chunk["data"].get("chunk", "")
                         msg = msg.content if not isinstance(msg, str) else msg
-                        print(msg)
+                        # print(msg)
                         await self.send(text_data=json.dumps({
                             'message': msg,
                             'sender': 'llm',
@@ -102,6 +102,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         }))
 
                 # Save the chunk to the file
+                # f.write(dumps(chunk) + "\n")
                 llm_message = chunk
             # Send final answer
             final_answer = find_key(llm_message, "generation")
@@ -133,7 +134,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             pipeline_id = await sync_to_async(lambda: chat.pipeline.id)()
             steps = set()
             async for chunk in llm_answer.astream_events(
-                    input={'question': message}, config=config,
+                    input={'question': message, "chat_history": chat_history}, config=config,
                     version='v2'
             ):
                 # Send updates for each node in the graph

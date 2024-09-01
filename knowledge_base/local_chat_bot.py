@@ -1,4 +1,6 @@
 import os
+from typing import Tuple, List
+
 from langchain_core.pydantic_v1 import BaseModel, Field
 from langchain_openai import ChatOpenAI
 from langchain_ollama import ChatOllama
@@ -38,11 +40,6 @@ class LocalChatBot(RAGPipeline):
 
         grad_preamble = config.grade_preamble
         self.grad_llm = self.llm_model
-        # structured_llm_grader = self.grad_llm.with_structured_output(GradeDocuments, preamble=grad_preamble)
-        # structured_llm_grader = self.grad_llm.with_structured_output(GradeDocuments)
-        # grad_prompt = ChatPromptTemplate.from_messages(
-        #     [("human", config.grade_prompt), ]
-        # )
 
         self.route_preamble = config.route_question_preamble
         self.route_llm = self.llm_model
@@ -80,27 +77,18 @@ Fournissez la note binaire sous forme de JSON avec une seule clé 'score' sans p
 
         hallucination_preamble = config.hallucination_preamble
         self.hallucination_llm = self.llm_model
-        # structured_llm_hallucination = self.hallucination_llm.with_structured_output(
-        #     # GradeDocuments, preamble=hallucination_preamble
-        #     GradeDocuments
-        # )
         hallucination_prompt = ChatPromptTemplate.from_messages(
             ("human", config.hallucination_prompt),
         )
 
         answer_preamble = config.answer_preamble
         self.answer_grader_llm = self.llm_model
-        # structured_llm_answer_grader = self.answer_grader_llm.with_structured_output(
-        #     # GradeAnswer, preamble=answer_preamble
-        #     GradeAnswer
-        # )
         answer_prompt = ChatPromptTemplate.from_messages(
             [
                 ("human", config.answer_prompt),
             ]
         )
 
-        # assert config.embedding_provider == 'huggingface'
         if config.embedding_provider == "ollama":
             self.embeddings_model = OllamaEmbeddings()
             self.embeddings_model.model = config.embedding_model
@@ -111,25 +99,23 @@ Fournissez la note binaire sous forme de JSON avec une seule clé 'score' sans p
         self.ocr_api_key = config.ocr_api_key
         self.weaviate_client = WeaviateConnector().get_instance().client
 
-        self.retriever = WeaviateVectorStore(self.weaviate_client,
-                                             "pipeline_chunks",
-                                             "content",
-                                             embedding=self.embeddings_model)
-
         self.base_retriever = WeaviateVectorStore(self.weaviate_client,
                                                   "knowledge_base",
                                                   "answer",
                                                   embedding=self.embeddings_model)
 
-        # self._update_structured_llm_route()
+        self.secondary_retriever = WeaviateVectorStore(self.weaviate_client,
+                                                       "pipeline_chunks",
+                                                       "content",
+                                                       embedding=self.embeddings_model)
+
         self.history_aware_retriever = create_history_aware_retriever(
-            self.cohere_model, self.retriever.as_retriever(), contextualize_q_prompt
+            self.cohere_model, self.secondary_retriever.as_retriever(), contextualize_q_prompt
         )
 
         self.rag_weaviate = self.weaviate_client.collections.get("knowledge_base")
         self.llm_chain = self.prompt | self.cohere_model | StrOutputParser()
         self.rag_chain = self.rag_prompt | self.rag_cohere_model | StrOutputParser()
-        # self.retrieval_grader = grad_prompt | self.llm_model | StrOutputParser()
         self.web_search_tool = TavilySearchResults()
         self.web_search_tool.api_wrapper = TavilySearchAPIWrapper()
 
@@ -137,9 +123,10 @@ Fournissez la note binaire sous forme de JSON avec une seule clé 'score' sans p
         self.hallucination_grader = hallucination_prompt | self.llm_model | StrOutputParser()
         self.answer_grader = answer_prompt | self.llm_model | StrOutputParser()
 
+
     def prompt(self, x):
         return ChatPromptTemplate.from_messages(
-            [HumanMessage(f"Question : {x['question']} \nRéponse : ")]
+            [HumanMessage(f"répondez uniquement à la question et utilisez l'historique des discussions s'il n'existe que pour vous-même et ne le mentionnez pas dans vos réponses{x['question']} \nRéponse : ")]
         )
 
     def rag_prompt(self, x):
@@ -151,22 +138,27 @@ Fournissez la note binaire sous forme de JSON avec une seule clé 'score' sans p
                 )
             ]
         )
-
     def update_retriever(self, index_name, text_name, filters=None):
-        self.retriever = WeaviateVectorStore(self.weaviate_client, index_name, text_name,
-                                             embedding=self.embeddings_model).as_retriever()
-        # self._update_structured_llm_route(filters)
-
-    def _update_structured_llm_route(self, filters=None):
-        self.retriever = MergerRetriever(
-            retrievers=[self.base_retriever.as_retriever(),
-                        self.retriever.as_retriever(search_kwargs={"filters": filters}), ])
+        self.secondary_retriever = WeaviateVectorStore(self.weaviate_client, index_name, text_name,
+                                                       embedding=self.embeddings_model).as_retriever()
 
     def retrieve_docs(self, state: AgentState):
         question = state["question"]
-        documents = self.retriever.get_relevant_documents(query=question)
-        print("DOCUMENTS RETRIEVÉS:", documents)
-        state["documents"] = [doc.page_content for doc in documents]
+
+        # First, try to retrieve documents from the base retriever
+        base_documents = self.base_retriever.as_retriever().get_relevant_documents(query=question)
+        print("BASE DOCUMENTS RETRIEVED:", base_documents)
+
+        if base_documents:
+            state["documents"] = [doc.page_content for doc in base_documents]
+            state["retriever_used"] = "base"
+        else:
+            # If no documents found in base retriever, use the secondary retriever
+            secondary_documents = self.secondary_retriever.get_relevant_documents(query=question)
+            print("SECONDARY DOCUMENTS RETRIEVED:", secondary_documents)
+            state["documents"] = [doc.page_content for doc in secondary_documents]
+            state["retriever_used"] = "secondary"
+
         return state
 
     def question_classifier(self, state: AgentState):
@@ -200,25 +192,16 @@ Fournissez la note binaire sous forme de JSON avec une seule clé 'score' sans p
     def llm_fallback(self, state):
         print("---LLM Fallback---")
         question = state["question"]
-        # chat_history = state["chat_history"]
-
-        # Include chat history in the prompt
-        # history_str = "\n".join([f"Human: {h[0]}\nAI: {h[1]}" for h in chat_history])
-        # prompt = f"Chat History:\n{chat_history}\n\nCurrent Question: {question}\n\nAnswer:"
-
-        generation = self.llm_chain.invoke({"question": question})
-
-        # Update chat history
-        # updated_history = chat_history + [(question, generation)]
-
+        chat_history = state["chat_history"]
+        prompt = f"Historique de la conversation :\n{chat_history}\n\nQuestion actuelle : {question}\n\nRéponse :"
+        generation = self.llm_chain.invoke({"question": prompt})
         return {"question": question, "generation": generation}
 
     def off_topic_response(self, state: AgentState):
         state["generation"] = self.llm_fallback(state)["generation"]
-        # state["generation"] = "je ne peux pas répondre à cela"
         return state
 
-    def document_grader(self, state: AgentState):
+    async def document_grader(self, state: AgentState):
         docs = state["documents"]
         question = state["question"]
 
@@ -241,8 +224,8 @@ Fournissez la note binaire sous forme de JSON avec une seule clé 'score' sans p
         grader_llm = grade_prompt | structured_llm
         scores = []
         for doc in docs:
-            result = grader_llm.invoke({"document": doc, "question": question})
-            scores.append(result.score)
+            result = await grader_llm.ainvoke({"document": doc, "question": question})
+            scores.append(result.score if result else "non")
         state["grades"] = scores
         return state
 
@@ -267,46 +250,63 @@ Fournissez la note binaire sous forme de JSON avec une seule clé 'score' sans p
 
     def gen_router(self, state: AgentState):
         grades = state["grades"]
-        print("NOTES DES DOCUMENTS :", grades)
+        print("DOCUMENT GRADES:", grades)
 
         if any(grade.lower() == "oui" for grade in grades):
             filtered_grades = [grade for grade in grades if grade.lower() == "oui"]
-            print("NOTES FILTRÉES DES DOCUMENTS :", filtered_grades)
+            print("FILTERED DOCUMENT GRADES:", filtered_grades)
             return "generate"
+        elif state["retriever_used"] == "base":
+            # If base retriever was used but no good matches, try secondary retriever
+            return "use_secondary_retriever"
         else:
+            # If secondary retriever was already used, rewrite the query
             return "rewrite_query"
 
     def generate_answer(self, state: AgentState):
         llm = self.llm_model
         question = state["question"]
         context = state["documents"]
-
+        chat_history = state["chat_history"]
         template = """Répondez à la question en vous basant uniquement sur le contexte suivant :
 
-{context}
+    {context}
 
-Question : {question}
+    Historique de conversation :
+    {chat_history}
 
-Veuillez fournir la réponse en format Markdown.
-        """
+    Question : {question}
+
+    Veuillez fournir la réponse en format Markdown.
+    """
 
         prompt = ChatPromptTemplate.from_template(
             template=template,
         )
         chain = prompt | llm | StrOutputParser()
-        result = chain.invoke({"question": question, "context": context})
+        result = chain.invoke({"question": question, "context": context, "chat_history": chat_history})
         state["generation"] = result
+        return state
+
+    def use_secondary_retriever(self, state: AgentState):
+        question = state["question"]
+        secondary_documents = self.secondary_retriever.get_relevant_documents(query=question)
+        print("SECONDARY DOCUMENTS RETRIEVED:", secondary_documents)
+        state["documents"] = [doc.page_content for doc in secondary_documents]
+        state["retriever_used"] = "secondary"
         return state
 
     async def build_pipeline_flow(self):
         workflow = StateGraph(AgentState)
 
+        # Update the workflow nodes and edges as needed
         workflow.add_node("topic_decision", self.question_classifier)
         workflow.add_node("off_topic_response", self.off_topic_response)
         workflow.add_node("retrieve_docs", self.retrieve_docs)
         workflow.add_node("rewrite_query", self.rewriter)
         workflow.add_node("generate_answer", self.generate_answer)
         workflow.add_node("document_grader", self.document_grader)
+        workflow.add_node("use_secondary_retriever", self.use_secondary_retriever)
 
         workflow.add_edge("off_topic_response", END)
         workflow.add_edge("retrieve_docs", "document_grader")
@@ -323,10 +323,12 @@ Veuillez fournir la réponse en format Markdown.
             self.gen_router,
             {
                 "generate": "generate_answer",
+                "use_secondary_retriever": "use_secondary_retriever",
                 "rewrite_query": "rewrite_query",
             },
         )
         workflow.add_edge("rewrite_query", "retrieve_docs")
+        workflow.add_edge("use_secondary_retriever", "document_grader")
         workflow.add_edge("generate_answer", END)
 
         workflow.set_entry_point("topic_decision")
@@ -339,6 +341,8 @@ class AgentState(TypedDict):
     grades: list[str]
     generation: str
     documents: list[str]
+    chat_history: List[Tuple[str, str]]
+    retriever_used: str
     on_topic: bool
 
 

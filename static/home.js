@@ -99,7 +99,7 @@ function initializeChat(chatId) {
         if (data.type === 'progress') {
             updateSystemMessage(user_message[data.message], chatMessages);
         } else if (data.sender === 'llm') {
-            // console.log(data);
+            console.log(data);
             const chunk = data.message;
             if (data.event === 'on_chat_model_stream') {
                 removeLoadingWidget();

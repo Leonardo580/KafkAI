@@ -145,11 +145,11 @@ class RAGPipeline:
         self._update_structured_llm_route(filters)
 
     def _update_structured_llm_route(self, filters=None):
-        merged_retreiver = MergerRetriever(
+        self.merged_retreiver = MergerRetriever(
             retrievers=[self.base_retriever.as_retriever(),
                         self.retriever.as_retriever(search_kwargs={"filters": filters}), ])
         retriever_tool = create_retriever_tool(
-            merged_retreiver,
+            self.merged_retreiver,
             "retrieve_from_weaviate",
             "Recherchez et renvoyez les documents du PDF soumis",
         )
@@ -171,7 +171,7 @@ class RAGPipeline:
         question = state["question"]
 
         # Retrieval
-        documents = self.retriever.as_retriever().invoke(question)
+        documents = self.merged_retreiver.invoke(question)
         return {"documents": documents, "question": question}
 
     def llm_fallback(self, state):
@@ -369,13 +369,98 @@ class RAGPipeline:
             pprint("---DECISION: GENERATION IS NOT GROUNDED IN DOCUMENTS, RE-TRY---")
             return "not supported"
 
+    def retrieve_from_base(self, state):
+        """
+        Retrieve documents from the base retriever.
+
+        Args:
+            state (dict): The current graph state
+
+        Returns:
+            state (dict): Updated state with documents from base retriever
+        """
+        print("---RETRIEVE FROM BASE---")
+        question = state["question"]
+        documents = self.base_retriever.as_retriever().get_relevant_documents(question)
+        print("AAAAAAAAAAAAAAAAAAAAAAA", documents)
+        return {"documents": documents, "question": question}
+
+    def retrieve_from_main(self, state):
+        """
+        Retrieve documents from the main retriever.
+
+        Args:
+            state (dict): The current graph state
+
+        Returns:
+            state (dict): Updated state with documents from main retriever
+        """
+        print("---RETRIEVE FROM MAIN---")
+        question = state["question"]
+        documents = self.retriever.get_relevant_documents(question)
+        return {"documents": documents, "question": question}
+
+    def grade_base_documents(self, state):
+        """
+        Determines whether the retrieved documents from base retriever are relevant to the question.
+
+        Args:
+            state (dict): The current graph state
+
+        Returns:
+            state (dict): Updates documents key with only filtered relevant documents
+        """
+        print("---GRADE BASE DOCUMENTS---")
+        question = state["question"]
+        documents = state["documents"]
+
+        filtered_docs = []
+        for d in documents:
+            score = self.retrieval_grader.invoke(
+                {"question": question, "document": d.page_content}
+            )
+            grade = "no"
+            if score:
+                grade = score.binary_score
+            if grade == "yes":
+                print("---GRADE: DOCUMENT RELEVANT---")
+                filtered_docs.append(d)
+            else:
+                print("---GRADE: DOCUMENT NOT RELEVANT---")
+
+        return {"documents": filtered_docs, "question": question}
+
+    def decide_next_retriever(self, state):
+        """
+        Determines whether to use main retriever or generate based on base retriever results.
+
+        Args:
+            state (dict): The current graph state
+
+        Returns:
+            str: Decision for next node to call
+        """
+        print("---DECIDE NEXT RETRIEVER---")
+        filtered_documents = state["documents"]
+
+        if not filtered_documents:
+            print("---DECISION: BASE RETRIEVER INSUFFICIENT, USE MAIN RETRIEVER---")
+            return "retrieve_from_main"
+        else:
+            print("---DECISION: BASE RETRIEVER SUFFICIENT, GENERATE---")
+            return "generate"
+
     async def build_pipeline_flow(self):
         workflow = StateGraph(GraphState)
-        workflow.add_node("web_search", self.web_search)  # web search
-        workflow.add_node("retrieve", self.retrieve)  # retrieve
-        workflow.add_node("grade_documents", self.grade_documents)  # grade documents
-        workflow.add_node("generate", self.generate)  # rag
-        workflow.add_node("llm_fallback", self.llm_fallback)  # llm
+
+        # Add nodes
+        workflow.add_node("web_search", self.web_search)
+        workflow.add_node("retrieve_from_base", self.retrieve_from_base)
+        workflow.add_node("retrieve_from_main", self.retrieve_from_main)
+        workflow.add_node("grade_base_documents", self.grade_base_documents)
+        workflow.add_node("grade_documents", self.grade_documents)
+        workflow.add_node("generate", self.generate)
+        workflow.add_node("llm_fallback", self.llm_fallback)
 
         # Build graph
         workflow.add_conditional_edges(
@@ -383,12 +468,21 @@ class RAGPipeline:
             self.route_question,
             {
                 "web_search": "web_search",
-                "vectorstore": "retrieve",
+                "vectorstore": "retrieve_from_base",
                 "llm_fallback": "llm_fallback",
             },
         )
         workflow.add_edge("web_search", "generate")
-        workflow.add_edge("retrieve", "grade_documents")
+        workflow.add_edge("retrieve_from_base", "grade_base_documents")
+        workflow.add_conditional_edges(
+            "grade_base_documents",
+            self.decide_next_retriever,
+            {
+                "retrieve_from_main": "retrieve_from_main",
+                "generate": "generate",
+            },
+        )
+        workflow.add_edge("retrieve_from_main", "grade_documents")
         workflow.add_conditional_edges(
             "grade_documents",
             self.decide_to_generate,
@@ -401,8 +495,8 @@ class RAGPipeline:
             "generate",
             self.grade_generation_v_documents_and_question,
             {
-                "not supported": "generate",  # Hallucinations: re-generate
-                "not useful": "web_search",  # Fails to answer question: fall-back to web-search
+                "not supported": "generate",
+                "not useful": "web_search",
                 "useful": END,
             },
         )

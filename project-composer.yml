@@ -52,6 +52,28 @@ services:
     volumes:
       - cache:/data
 
+#  django:
+#    build:
+#      context: .
+#      dockerfile: Dockerfile
+#    command: python manage.py runserver 0.0.0.0:8000
+#    volumes:
+#      - .:/app
+#    ports:
+#      - "8000:8000"
+#    depends_on:
+#      - db
+#      - cache
+#    environment:
+#      - DB_HOST=db
+#      - DB_PORT=5432
+#      - DB_NAME=chatbot_db
+#      - DB_USER=postgres
+#      - DB_PASSWORD=NVsM2R8gF0Z5
+#      - REDIS_HOST=cache
+#      - REDIS_PORT=6379
+#      - REDIS_PASSWORD=eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81
+#
 volumes:
   weaviate_data:
     driver: local
