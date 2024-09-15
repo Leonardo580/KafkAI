@@ -1,5 +1,5 @@
 import os
-from typing import Tuple, List
+from typing import List, Tuple
 
 from langchain_core.pydantic_v1 import BaseModel, Field
 from langchain_openai import ChatOpenAI
@@ -102,6 +102,7 @@ Fournissez la note binaire sous forme de JSON avec une seule clé 'score' sans p
         self.base_retriever = WeaviateVectorStore(self.weaviate_client,
                                                   "knowledge_base",
                                                   "answer",
+                                                  attributes=['subject', 'question', 'answer'],
                                                   embedding=self.embeddings_model)
 
         self.secondary_retriever = WeaviateVectorStore(self.weaviate_client,
@@ -126,7 +127,7 @@ Fournissez la note binaire sous forme de JSON avec une seule clé 'score' sans p
 
     def prompt(self, x):
         return ChatPromptTemplate.from_messages(
-            [HumanMessage(f"répondez uniquement à la question et utilisez l'historique des discussions s'il n'existe que pour vous-même et ne le mentionnez pas dans vos réponses{x['question']} \nRéponse : ")]
+            [HumanMessage(f"Donnez une réponse concise à la question sans faire référence à aucun historique de conversation.{x['question']} \nRéponse : ")]
         )
 
     def rag_prompt(self, x):
@@ -140,23 +141,36 @@ Fournissez la note binaire sous forme de JSON avec une seule clé 'score' sans p
         )
     def update_retriever(self, index_name, text_name, filters=None):
         self.secondary_retriever = WeaviateVectorStore(self.weaviate_client, index_name, text_name,
-                                                       embedding=self.embeddings_model).as_retriever()
+                                                       embedding=self.embeddings_model).as_retriever(
+            search_kwargs={"filters": filters}
+        )
 
     def retrieve_docs(self, state: AgentState):
         question = state["question"]
 
-        # First, try to retrieve documents from the base retriever
         base_documents = self.base_retriever.as_retriever().get_relevant_documents(query=question)
         print("BASE DOCUMENTS RETRIEVED:", base_documents)
 
         if base_documents:
-            state["documents"] = [doc.page_content for doc in base_documents]
+            # Include metadata in the document representation
+            state["documents"] = [
+                {
+                    "content": doc.page_content,
+                    "metadata": doc.metadata
+                }
+                for doc in base_documents
+            ]
             state["retriever_used"] = "base"
         else:
-            # If no documents found in base retriever, use the secondary retriever
             secondary_documents = self.secondary_retriever.get_relevant_documents(query=question)
             print("SECONDARY DOCUMENTS RETRIEVED:", secondary_documents)
-            state["documents"] = [doc.page_content for doc in secondary_documents]
+            state["documents"] = [
+                {
+                    "content": doc.page_content,
+                    "metadata": doc.metadata
+                }
+                for doc in secondary_documents
+            ]
             state["retriever_used"] = "secondary"
 
         return state
@@ -189,14 +203,14 @@ Fournissez la note binaire sous forme de JSON avec une seule clé 'score' sans p
             return "on_topic"
         return "off_topic"
 
-    def llm_fallback(self, state):
+    def llm_fallback(self, state: AgentState):
         print("---LLM Fallback---")
         question = state["question"]
         chat_history = state["chat_history"]
         prompt = f"Historique de la conversation :\n{chat_history}\n\nQuestion actuelle : {question}\n\nRéponse :"
         generation = self.llm_chain.invoke({"question": prompt})
-        return {"question": question, "generation": generation}
-
+        state["generation"] = generation
+        return state
     def off_topic_response(self, state: AgentState):
         state["generation"] = self.llm_fallback(state)["generation"]
         return state
@@ -205,9 +219,12 @@ Fournissez la note binaire sous forme de JSON avec une seule clé 'score' sans p
         docs = state["documents"]
         question = state["question"]
 
-        system = """Vous êtes un évaluateur qui détermine la pertinence d'un document récupéré par rapport à une question utilisateur. \n
-            Si le document contient des mots-clés ou une signification sémantique liée à la question, évaluez-le comme pertinent. \n
-            Donnez une note binaire 'oui' ou 'non' pour indiquer si le document est pertinent pour la question."""
+        system = """
+        Vous êtes un évaluateur qui détermine la pertinence d'un document récupéré par rapport à une question utilisateur.
+        Si le document contient des mots-clés ou une signification sémantique liée à la question, évaluez-le comme pertinent.
+        Donnez une note binaire 'oui' ou 'non' pour indiquer si le document est pertinent pour la question.
+        **Répondez uniquement par 'oui' ou 'non', sans aucune explication supplémentaire.**
+        """
 
         grade_prompt = ChatPromptTemplate.from_messages(
             [
@@ -224,8 +241,9 @@ Fournissez la note binaire sous forme de JSON avec une seule clé 'score' sans p
         grader_llm = grade_prompt | structured_llm
         scores = []
         for doc in docs:
+            print("Document:--------------", doc)
             result = await grader_llm.ainvoke({"document": doc, "question": question})
-            scores.append(result.score if result else "non")
+            scores.append(result.score)
         state["grades"] = scores
         return state
 
@@ -260,9 +278,8 @@ Fournissez la note binaire sous forme de JSON avec une seule clé 'score' sans p
             # If base retriever was used but no good matches, try secondary retriever
             return "use_secondary_retriever"
         else:
-            # If secondary retriever was already used, rewrite the query
-            return "rewrite_query"
-
+            # If secondary retriever was already used, pass to LLM directly
+            return "llm_fallback"
     def generate_answer(self, state: AgentState):
         llm = self.llm_model
         question = state["question"]
@@ -277,7 +294,7 @@ Fournissez la note binaire sous forme de JSON avec une seule clé 'score' sans p
 
     Question : {question}
 
-    Veuillez fournir la réponse en format Markdown.
+    Veuillez fournir la réponse en format Markdown et concise à la question sans faire référence à aucun historique de conversation..
     """
 
         prompt = ChatPromptTemplate.from_template(
@@ -303,10 +320,10 @@ Fournissez la note binaire sous forme de JSON avec une seule clé 'score' sans p
         workflow.add_node("topic_decision", self.question_classifier)
         workflow.add_node("off_topic_response", self.off_topic_response)
         workflow.add_node("retrieve_docs", self.retrieve_docs)
-        workflow.add_node("rewrite_query", self.rewriter)
         workflow.add_node("generate_answer", self.generate_answer)
         workflow.add_node("document_grader", self.document_grader)
         workflow.add_node("use_secondary_retriever", self.use_secondary_retriever)
+        workflow.add_node("llm_fallback", self.llm_fallback)
 
         workflow.add_edge("off_topic_response", END)
         workflow.add_edge("retrieve_docs", "document_grader")
@@ -324,12 +341,12 @@ Fournissez la note binaire sous forme de JSON avec une seule clé 'score' sans p
             {
                 "generate": "generate_answer",
                 "use_secondary_retriever": "use_secondary_retriever",
-                "rewrite_query": "rewrite_query",
+                "llm_fallback": "llm_fallback",
             },
         )
-        workflow.add_edge("rewrite_query", "retrieve_docs")
         workflow.add_edge("use_secondary_retriever", "document_grader")
         workflow.add_edge("generate_answer", END)
+        workflow.add_edge("llm_fallback", END)
 
         workflow.set_entry_point("topic_decision")
 
@@ -341,16 +358,16 @@ class AgentState(TypedDict):
     grades: list[str]
     generation: str
     documents: list[str]
-    chat_history: List[Tuple[str, str]]
-    retriever_used: str
     on_topic: bool
+    retriever_used: str
+    chat_history: List[Tuple[str, str]]
 
 
 class GradeQuestion(BaseModel):
     """Valeur booléenne pour vérifier si une question est liée au restaurant Bella Vista"""
 
     score: str = Field(
-        description="La question concerne-t-elle les restaurant ? Si oui -> 'oui' si non -> 'non'"
+        description="La question concerne-t-elle le restaurant ? Si oui -> 'oui' sinon -> 'non'"
     )
 
 

@@ -6,6 +6,8 @@ const responses = []; // Store responses here
 let idCounter = 0; // Unique ID counter for bot messages
 let isWebSocketConnected = true; // Flag to track WebSocket connection status
 const marked = window.marked;
+let confirmButton, cancelButton;
+
 const user_message = {
     "__start__": "processing...",
     "retrieve": "retrieving...",
@@ -51,16 +53,32 @@ function createNewChat() {
     const pipelineModal = document.getElementById('pipeline-modal');
     pipelineModal.classList.remove('hidden');
 
-    const confirmButton = document.getElementById('confirm-pipeline');
-    const cancelButton = document.getElementById('cancel-pipeline');
-    confirmButton.addEventListener('click', () => {
-        const selectedPipelineId = document.getElementById('pipeline-select').value;
-        pipelineModal.classList.add('hidden');
-        createChatWithPipeline(selectedPipelineId);
-    });
-    cancelButton.addEventListener('click', () => {
-        pipelineModal.classList.add('hidden');
-    });
+    // Only set up event listeners if they haven't been set up before
+    if (!confirmButton) {
+        confirmButton = document.getElementById('confirm-pipeline');
+        confirmButton.addEventListener('click', handleConfirm);
+    }
+    if (!cancelButton) {
+        cancelButton = document.getElementById('cancel-pipeline');
+        cancelButton.addEventListener('click', handleCancel);
+    }
+}
+
+function handleConfirm() {
+    const pipelineModal = document.getElementById('pipeline-modal');
+    const selectedPipelineId = document.getElementById('pipeline-select').value;
+
+    if (!selectedPipelineId || selectedPipelineId === 'undefined') {
+        alert('Please select a a chat');
+        return;
+    }
+
+    pipelineModal.classList.add('hidden');
+    createChatWithPipeline(selectedPipelineId);
+}
+function handleCancel() {
+    const pipelineModal = document.getElementById('pipeline-modal');
+    pipelineModal.classList.add('hidden');
 }
 
 function chat_messages(chatId) {

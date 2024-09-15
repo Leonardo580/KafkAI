@@ -24,7 +24,8 @@ def launch_pipeline_task(progress_id):
 
         config = progress.pipeline.config
         bot = RAGRetriever(config)
-        bot.embed_knowledge(knowledge, pipeline_id, progress_callback)
+        if knowledge.count() > 0:
+            bot.embed_knowledge(knowledge, pipeline_id, progress_callback)
 
         progress.status = 'completed'
 

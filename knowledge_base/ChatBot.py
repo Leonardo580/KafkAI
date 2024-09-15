@@ -397,7 +397,7 @@ class RAGPipeline:
         """
         print("---RETRIEVE FROM MAIN---")
         question = state["question"]
-        documents = self.retriever.get_relevant_documents(question)
+        documents = self.retriever.as_retriever().get_relevant_documents(question)
         return {"documents": documents, "question": question}
 
     def grade_base_documents(self, state):
