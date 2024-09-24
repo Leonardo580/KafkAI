@@ -150,7 +150,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 # print("1----", chunk["metadata"].get("langgraph_node") in ["off_topic_response", "generate_answer"])
                 # print("2----", chunk["tags"], chunk["tags"] == ['seq:step:1', 'seq:step:2'])
 
-                if chunk["metadata"].get("langgraph_node") in ["off_topic_response", "generate_answer"] and (chunk[
+                if chunk["metadata"].get("langgraph_node") in ["off_topic_response", "generate_answer", "llm_fallback"] and (chunk[
                     "tags"] == ["seq:step:1", "seq:step:2"] or chunk["tags"] == ["seq:step:2", "seq:step:1"]) or\
                     chunk["tags"] ==  ["seq:step:2"]:
                     if chunk["event"] in ["on_chat_model_stream", "on_chat_model_start"]:

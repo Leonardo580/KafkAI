@@ -242,7 +242,9 @@ Fournissez la note binaire sous forme de JSON avec une seule clé 'score' sans p
         scores = []
         for doc in docs:
             print("Document:--------------", doc)
-            result = await grader_llm.ainvoke({"document": doc, "question": question})
+            result = None
+            while result is None:
+                result = await grader_llm.ainvoke({"document": doc, "question": question})
             scores.append(result.score)
         state["grades"] = scores
         return state
