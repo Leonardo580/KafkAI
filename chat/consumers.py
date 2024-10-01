@@ -65,7 +65,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 chat_history = await get_chat_history(self.chat_id)
             user_message = await sync_to_async(Message.objects.create)(chat=chat, sender=sender, content=message)
             ragretriver = RAGRetriever(rag_config)
-            ragretriver.update_retriever("pipeline_chunks", "content", pipeline_id)
+            # ragretriver.update_retriever("pipeline_chunks", "content", pipeline_id)
             # llm_answer = await RAGRetrieverCacher.get_or_compile_graph(ragretriver)
             llm_answer = await ragretriver.build_pipeline_flow()
             # Generate answer asynchronously
@@ -123,9 +123,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
             user_message = await sync_to_async(Message.objects.create)(chat=chat, sender=sender, content=message)
             rag_config = await sync_to_async(lambda: chat.pipeline.config)()
             ragretriver = LocalChatBot(rag_config)
-            ragretriver.update_retriever("pipeline_chunks", "content",
-                                         Filter.by_property("knowledge_id").equal(pipeline_id))
-            # llm_answer = await RAGRetrieverCacher.get_or_compile_graph(ragretriver)
+            # ragretriver.update_retriever("pipeline_chunks", "content",
+            #                              Filter.by_property("knowledge_id").equal(pipeline_id))
+            # # llm_answer = await RAGRetrieverCacher.get_or_compile_graph(ragretriver)
             llm_answer = await ragretriver.build_pipeline_flow()
             # Generate answer asynchronously
             chat_history = await get_chat_history(self.chat_id)

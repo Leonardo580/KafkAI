@@ -53,7 +53,7 @@ INSTALLED_APPS = [
     "pipeline.apps.PipelineConfig",
     "knowledge.apps.KnowledgeConfig",
     "django_select2",
-    'langserve',
+    # 'langserve',
     'corsheaders',
     'flat_json_widget',
     "encrypted_model_fields"

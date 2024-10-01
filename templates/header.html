@@ -5,17 +5,17 @@
 <head>
     {% load static %}
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script  src="{% static "home.js" %}"></script>
+    <script src="{% static "home.js" %}"></script>
     <meta charset="utf-8"/>
     <meta content="IE=edge" http-equiv="X-UA-Compatible"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <title>
-        KafkAI 
+        SRABOT
     </title>
     <link href="{% static 'favicon.ico' %}" rel="icon"/>
     <link href="{% static 'style.css' %}" rel="stylesheet"/>
     <script src="https://cdn.tailwindcss.com"></script>
-    
+
 
 </head>
 <body :class="{'dark text-bodydark bg-boxdark-2': darkMode === true}"
@@ -34,84 +34,89 @@
 <!-- ===== Page Wrapper Start ===== -->
 <div class="flex h-screen overflow-hidden">
     <!-- ===== Sidebar Start ===== -->
-{% block sidebar %}
-    <aside :class="sidebarToggle ? 'translate-x-0' : '-translate-x-full'" @click.outside="sidebarToggle = false"
-           class="absolute left-0 top-0 z-9999 flex h-screen w-72.5 flex-col overflow-y-hidden bg-black duration-300 ease-linear dark:bg-boxdark lg:static lg:translate-x-0">
-        <!-- SIDEBAR HEADER -->
-        <div class="flex items-center justify-between gap-2 px-6 py-5.5 lg:py-6.5">
-            <a href=" "{% url "home" %} class="flex ml-2 md:mr-24">
-                    <img src="https://flowbite-admin-dashboard.vercel.app/images/logo.svg" class="h-8 mr-3" alt="FlowBite Logo">
-                    <span class="self-center text-xl font-semibold sm:text-2xl whitespace-nowrap dark:text-white">KafkAI</span>
+    {% block sidebar %}
+        <aside :class="sidebarToggle ? 'translate-x-0' : '-translate-x-full'" @click.outside="sidebarToggle = false"
+               class="absolute left-0 top-0 z-9999 flex h-screen w-72.5 flex-col overflow-y-hidden bg-black duration-300 ease-linear dark:bg-boxdark lg:static lg:translate-x-0">
+            <!-- SIDEBAR HEADER -->
+            <div class="flex items-center justify-between gap-2 px-6 py-5.5 lg:py-6.5">
+                <a href=" "{% url "home" %} class="flex ml-2 md:mr-24">
+                    <img src="https://scontent.ftun1-2.fna.fbcdn.net/v/t39.30808-1/425285836_895787899222283_7035013415376337378_n.jpg?stp=dst-jpg_s200x200_tt7&_nc_cat=107&cb=99be929b-defccdb7&ccb=1-7&_nc_sid=f4b9fd&_nc_ohc=Qn7IQYXsK4oQ7kNvgH01CW5&_nc_ht=scontent.ftun1-2.fna&oh=00_AYAVvoRwn5UXQUsTP1hSrthcuypIqZJLt2N6uWkRSkkw6w&oe=67021179"
+                         class="h-8 mr-3"
+                         alt="FlowBite Logo">
+                    <span class="self-center text-xl font-semibold sm:text-2xl whitespace-nowrap dark:text-white">SRABOT</span>
                 </a>
-        </div>
-        <!-- SIDEBAR HEADER -->
-        <div class="no-scrollbar flex flex-col overflow-y-auto duration-300 ease-linear">
-            <!-- Sidebar Menu -->
-            <nav class="mt-5 px-4 py-4 lg:mt-9 lg:px-6" x-data="{selected: $persist('Dashboard')}">
-                <!-- Menu Group -->
-                <div>
-                    <h3 class="mb-4 ml-4 text-sm font-medium text-bodydark2">
-                        Chat History
-                    </h3>
-                    <ul class="mb-6 flex flex-col gap-1.5 chat-history-list" x-data="{ selectedChat: null, page: 1 }">
-                        <!-- New Chat Button -->
-                        <li>
-                            <a href="#" @click.prevent="createNewChat()"
-                               class="group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                                     stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                          d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/>
-                                </svg>
-                                New Chat
-                            </a>
-                        </li>
-
-                        {% for chat in chats %}
+            </div>
+            <!-- SIDEBAR HEADER -->
+            <div class="no-scrollbar flex flex-col overflow-y-auto duration-300 ease-linear">
+                <!-- Sidebar Menu -->
+                <nav class="mt-5 px-4 py-4 lg:mt-9 lg:px-6" x-data="{selected: $persist('Dashboard')}">
+                    <!-- Menu Group -->
+                    <div>
+                        <h3 class="mb-4 ml-4 text-sm font-medium text-bodydark2">
+                            Historique des discussions
+                        </h3>
+                        <ul class="mb-6 flex flex-col gap-1.5 chat-history-list"
+                            x-data="{ selectedChat: null, page: 1 }">
+                            <!-- New Chat Button -->
                             <li>
-                                <a href="#" @click.prevent="selectedChat = {{ chat.id }}; chat_messages({{ chat.id }})"
-                                   :class="{ 'bg-blue-500 text-white': selectedChat === {{ chat.id }} }"
+                                <a href="#" @click.prevent="createNewChat()"
                                    class="group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4">
-                                    <svg class="fill-current" fill="none" height="18" viewBox="0 0 18 18" width="18"
-                                         xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M9 4.5C9.82843 4.5 10.5 3.82843 10.5 3C10.5 2.17157 9.82843 1.5 9 1.5C8.17157 1.5 7.5 2.17157 7.5 3C7.5 3.82843 8.17157 4.5 9 4.5Z"
-                                              fill=""/>
-                                        <path d="M13.5 9C13.5 12.5899 10.5899 15.5 7 15.5C3.41015 15.5 0.5 12.5899 0.5 9C0.5 5.41015 3.41015 2.5 7 2.5C10.5899 2.5 13.5 5.41015 13.5 9Z"
-                                              fill=""/>
-                                        <path d="M17.5 17.5L13.5 13.5" stroke="" stroke-linecap="round"
-                                              stroke-linejoin="round"/>
-                                    </svg>
-                                    chat_#{{ chat.id }}
-                                </a>
-                            </li>
-                        {% endfor %}
-
-                        <!-- Load More Chats Button -->
-                        {% if isChats %}
-                            <li>
-                                <button id="load-more-button" @click.prevent="loadMoreChats()"
-                                        class="group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                                          stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
                                         <path stroke-linecap="round" stroke-linejoin="round"
-                                              d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>
+                                              d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/>
                                     </svg>
-                                    Load More Chats
-                                </button>
+                                    Nouveau chat
+                                </a>
                             </li>
-                        {% endif %}
-                    </ul>
 
-                </div>
-                <!-- ... -->
-            </nav>
-            <!-- Sidebar Menu -->
-            <!-- Promo Box -->
+                            {% for chat in chats %}
+                                <li>
+                                    <a href="#"
+                                       @click.prevent="selectedChat = {{ chat.id }}; chat_messages({{ chat.id }})"
+                                       :class="{ 'bg-blue-500 text-white': selectedChat === {{ chat.id }} }"
+                                       class="group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4">
+                                        <svg class="fill-current" fill="none" height="18" viewBox="0 0 18 18" width="18"
+                                             xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M9 4.5C9.82843 4.5 10.5 3.82843 10.5 3C10.5 2.17157 9.82843 1.5 9 1.5C8.17157 1.5 7.5 2.17157 7.5 3C7.5 3.82843 8.17157 4.5 9 4.5Z"
+                                                  fill=""/>
+                                            <path d="M13.5 9C13.5 12.5899 10.5899 15.5 7 15.5C3.41015 15.5 0.5 12.5899 0.5 9C0.5 5.41015 3.41015 2.5 7 2.5C10.5899 2.5 13.5 5.41015 13.5 9Z"
+                                                  fill=""/>
+                                            <path d="M17.5 17.5L13.5 13.5" stroke="" stroke-linecap="round"
+                                                  stroke-linejoin="round"/>
+                                        </svg>
+                                        chat_#{{ chat.id }}
+                                    </a>
+                                </li>
+                            {% endfor %}
 
-            <!-- Promo Box -->
-        </div>
-    </aside>
-{% endblock %}
+                            <!-- Load More Chats Button -->
+                            {% if isChats %}
+                                <li>
+                                    <button id="load-more-button" @click.prevent="loadMoreChats()"
+                                            class="group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                             stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                  d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>
+                                        </svg>
+                                        Plus de chats
+                                    </button>
+                                </li>
+                            {% endif %}
+                        </ul>
+
+                    </div>
+                    <!-- ... -->
+                </nav>
+                <!-- Sidebar Menu -->
+                <!-- Promo Box -->
+
+                <!-- Promo Box -->
+            </div>
+        </aside>
+    {% endblock %}
+
     <!-- ===== Sidebar End ===== -->
     <!-- ===== Content Area Start ===== -->
     <div class="relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden">
@@ -146,7 +151,9 @@
                     </button>
                     <!-- Hamburger Toggle BTN -->
                     <a class="block flex-shrink-0 lg:hidden" href="index.html">
-                        <img alt="Logo" src="https://flowbite-admin-dashboard.vercel.app/images/logo.svg"/>
+                        <img alt="Logo"
+                             src="https://scontent.ftun1-2.fna.fbcdn.net/v/t39.30808-1/425285836_895787899222283_7035013415376337378_n.jpg?stp=dst-jpg_s200x200_tt7&_nc_cat=107&cb=99be929b-defccdb7&ccb=1-7&_nc_sid=f4b9fd&_nc_ohc=Qn7IQYXsK4oQ7kNvgH01CW5&_nc_ht=scontent.ftun1-2.fna&oh=00_AYAVvoRwn5UXQUsTP1hSrthcuypIqZJLt2N6uWkRSkkw6w&oe=67021179"
+                             class="h-8 mr-3"/>
                     </a>
                 </div>
                 <div class="hidden sm:block">
@@ -173,43 +180,74 @@
                 </div>
                 <div class="flex items-center gap-3 2xsm:gap-7">
                     <ul class="flex items-center gap-2 2xsm:gap-4">
-                        <li>
-                            <!-- Dark Mode Toggler -->
-                            <label :class="darkMode ? 'bg-primary' : 'bg-stroke'"
-                                   class="relative m-0 block h-7.5 w-14 rounded-full">
-                                <input :value="darkMode" @change="darkMode = !darkMode"
-                                       class="absolute top-0 z-50 m-0 h-full w-full cursor-pointer opacity-0"
-                                       type="checkbox"/>
-                                <span :class="darkMode &amp;&amp; '!right-1 !translate-x-full'"
-                                      class="absolute left-1 top-1/2 flex h-6 w-6 -translate-y-1/2 translate-x-0 items-center justify-center rounded-full bg-white shadow-switcher duration-75 ease-linear">
-           <span class="dark:hidden">
-            <svg fill="none" height="16" viewbox="0 0 16 16" width="16" xmlns="http://www.w3.org/2000/svg">
-             <path d="M7.99992 12.6666C10.5772 12.6666 12.6666 10.5772 12.6666 7.99992C12.6666 5.42259 10.5772 3.33325 7.99992 3.33325C5.42259 3.33325 3.33325 5.42259 3.33325 7.99992C3.33325 10.5772 5.42259 12.6666 7.99992 12.6666Z"
-                   fill="#969AA1">
-             </path>
-             <path d="M8.00008 15.3067C7.63341 15.3067 7.33342 15.0334 7.33342 14.6667V14.6134C7.33342 14.2467 7.63341 13.9467 8.00008 13.9467C8.36675 13.9467 8.66675 14.2467 8.66675 14.6134C8.66675 14.9801 8.36675 15.3067 8.00008 15.3067ZM12.7601 13.4267C12.5867 13.4267 12.4201 13.3601 12.2867 13.2334L12.2001 13.1467C11.9401 12.8867 11.9401 12.4667 12.2001 12.2067C12.4601 11.9467 12.8801 11.9467 13.1401 12.2067L13.2267 12.2934C13.4867 12.5534 13.4867 12.9734 13.2267 13.2334C13.1001 13.3601 12.9334 13.4267 12.7601 13.4267ZM3.24008 13.4267C3.06675 13.4267 2.90008 13.3601 2.76675 13.2334C2.50675 12.9734 2.50675 12.5534 2.76675 12.2934L2.85342 12.2067C3.11342 11.9467 3.53341 11.9467 3.79341 12.2067C4.05341 12.4667 4.05341 12.8867 3.79341 13.1467L3.70675 13.2334C3.58008 13.3601 3.40675 13.4267 3.24008 13.4267ZM14.6667 8.66675H14.6134C14.2467 8.66675 13.9467 8.36675 13.9467 8.00008C13.9467 7.63341 14.2467 7.33342 14.6134 7.33342C14.9801 7.33342 15.3067 7.63341 15.3067 8.00008C15.3067 8.36675 15.0334 8.66675 14.6667 8.66675ZM1.38675 8.66675H1.33341C0.966748 8.66675 0.666748 8.36675 0.666748 8.00008C0.666748 7.63341 0.966748 7.33342 1.33341 7.33342C1.70008 7.33342 2.02675 7.63341 2.02675 8.00008C2.02675 8.36675 1.75341 8.66675 1.38675 8.66675ZM12.6734 3.99341C12.5001 3.99341 12.3334 3.92675 12.2001 3.80008C11.9401 3.54008 11.9401 3.12008 12.2001 2.86008L12.2867 2.77341C12.5467 2.51341 12.9667 2.51341 13.2267 2.77341C13.4867 3.03341 13.4867 3.45341 13.2267 3.71341L13.1401 3.80008C13.0134 3.92675 12.8467 3.99341 12.6734 3.99341ZM3.32675 3.99341C3.15341 3.99341 2.98675 3.92675 2.85342 3.80008L2.76675 3.70675C2.50675 3.44675 2.50675 3.02675 2.76675 2.76675C3.02675 2.50675 3.44675 2.50675 3.70675 2.76675L3.79341 2.85342C4.05341 3.11342 4.05341 3.53341 3.79341 3.79341C3.66675 3.92675 3.49341 3.99341 3.32675 3.99341ZM8.00008 2.02675C7.63341 2.02675 7.33342 1.75341 7.33342 1.38675V1.33341C7.33342 0.966748 7.63341 0.666748 8.00008 0.666748C8.36675 0.666748 8.66675 0.966748 8.66675 1.33341C8.66675 1.70008 8.36675 2.02675 8.00008 2.02675Z"
-                   fill="#969AA1">
-             </path>
-            </svg>
-           </span>
-           <span class="hidden dark:inline-block">
-            <svg fill="none" height="16" viewbox="0 0 16 16" width="16" xmlns="http://www.w3.org/2000/svg">
-             <path d="M14.3533 10.62C14.2466 10.44 13.9466 10.16 13.1999 10.2933C12.7866 10.3667 12.3666 10.4 11.9466 10.38C10.3933 10.3133 8.98659 9.6 8.00659 8.5C7.13993 7.53333 6.60659 6.27333 6.59993 4.91333C6.59993 4.15333 6.74659 3.42 7.04659 2.72666C7.33993 2.05333 7.13326 1.7 6.98659 1.55333C6.83326 1.4 6.47326 1.18666 5.76659 1.48C3.03993 2.62666 1.35326 5.36 1.55326 8.28666C1.75326 11.04 3.68659 13.3933 6.24659 14.28C6.85993 14.4933 7.50659 14.62 8.17326 14.6467C8.27993 14.6533 8.38659 14.66 8.49326 14.66C10.7266 14.66 12.8199 13.6067 14.1399 11.8133C14.5866 11.1933 14.4666 10.8 14.3533 10.62Z"
-                   fill="#969AA1">
-             </path>
-            </svg>
-           </span>
-          </span>
-                            </label>
-                            <!-- Dark Mode Toggler -->
-                        </li>
-                        <!-- Notification Menu Area -->
+                        
+{#                        <li>#}
+{#                            <!-- Dark Mode Toggler -->#}
+{#                            <label :class="darkMode ? 'bg-primary' : 'bg-stroke'"#}
+{#                                   class="relative m-0 block h-7.5 w-14 rounded-full">#}
+{#                                <input type="checkbox"#}
+{#                                       class="absolute top-0 z-50 m-0 h-full w-full cursor-pointer opacity-0"#}
+{#                                       :checked="darkMode"#}
+{#                                       @change="#}
+{#         darkMode = !darkMode;#}
+{#              if (darkMode) {#}
+{#              console.log(document.documentElement.classList)#}
+{#            document.documentElement.classList.add('dark');#}
+{#        } else {#}
+{#            document.documentElement.classList.remove('dark');#}
+{#        }#}
+{##}
+{#         #}
+{#       "/>#}
+{#                                <span :class="darkMode &amp;&amp; '!right-1 !translate-x-full'"#}
+{#                                      class="absolute left-1 top-1/2 flex h-6 w-6 -translate-y-1/2 translate-x-0 items-center justify-center rounded-full bg-white shadow-switcher duration-75 ease-linear">#}
+{#           <span class="dark:hidden">#}
+{#            <svg fill="none" height="16" viewbox="0 0 16 16" width="16" xmlns="http://www.w3.org/2000/svg">#}
+{#             <path d="M7.99992 12.6666C10.5772 12.6666 12.6666 10.5772 12.6666 7.99992C12.6666 5.42259 10.5772 3.33325 7.99992 3.33325C5.42259 3.33325 3.33325 5.42259 3.33325 7.99992C3.33325 10.5772 5.42259 12.6666 7.99992 12.6666Z"#}
+{#                   fill="#969AA1">#}
+{#             </path>#}
+{#             <path d="M8.00008 15.3067C7.63341 15.3067 7.33342 15.0334 7.33342 14.6667V14.6134C7.33342 14.2467 7.63341 13.9467 8.00008 13.9467C8.36675 13.9467 8.66675 14.2467 8.66675 14.6134C8.66675 14.9801 8.36675 15.3067 8.00008 15.3067ZM12.7601 13.4267C12.5867 13.4267 12.4201 13.3601 12.2867 13.2334L12.2001 13.1467C11.9401 12.8867 11.9401 12.4667 12.2001 12.2067C12.4601 11.9467 12.8801 11.9467 13.1401 12.2067L13.2267 12.2934C13.4867 12.5534 13.4867 12.9734 13.2267 13.2334C13.1001 13.3601 12.9334 13.4267 12.7601 13.4267ZM3.24008 13.4267C3.06675 13.4267 2.90008 13.3601 2.76675 13.2334C2.50675 12.9734 2.50675 12.5534 2.76675 12.2934L2.85342 12.2067C3.11342 11.9467 3.53341 11.9467 3.79341 12.2067C4.05341 12.4667 4.05341 12.8867 3.79341 13.1467L3.70675 13.2334C3.58008 13.3601 3.40675 13.4267 3.24008 13.4267ZM14.6667 8.66675H14.6134C14.2467 8.66675 13.9467 8.36675 13.9467 8.00008C13.9467 7.63341 14.2467 7.33342 14.6134 7.33342C14.9801 7.33342 15.3067 7.63341 15.3067 8.00008C15.3067 8.36675 15.0334 8.66675 14.6667 8.66675ZM1.38675 8.66675H1.33341C0.966748 8.66675 0.666748 8.36675 0.666748 8.00008C0.666748 7.63341 0.966748 7.33342 1.33341 7.33342C1.70008 7.33342 2.02675 7.63341 2.02675 8.00008C2.02675 8.36675 1.75341 8.66675 1.38675 8.66675ZM12.6734 3.99341C12.5001 3.99341 12.3334 3.92675 12.2001 3.80008C11.9401 3.54008 11.9401 3.12008 12.2001 2.86008L12.2867 2.77341C12.5467 2.51341 12.9667 2.51341 13.2267 2.77341C13.4867 3.03341 13.4867 3.45341 13.2267 3.71341L13.1401 3.80008C13.0134 3.92675 12.8467 3.99341 12.6734 3.99341ZM3.32675 3.99341C3.15341 3.99341 2.98675 3.92675 2.85342 3.80008L2.76675 3.70675C2.50675 3.44675 2.50675 3.02675 2.76675 2.76675C3.02675 2.50675 3.44675 2.50675 3.70675 2.76675L3.79341 2.85342C4.05341 3.11342 4.05341 3.53341 3.79341 3.79341C3.66675 3.92675 3.49341 3.99341 3.32675 3.99341ZM8.00008 2.02675C7.63341 2.02675 7.33342 1.75341 7.33342 1.38675V1.33341C7.33342 0.966748 7.63341 0.666748 8.00008 0.666748C8.36675 0.666748 8.66675 0.966748 8.66675 1.33341C8.66675 1.70008 8.36675 2.02675 8.00008 2.02675Z"#}
+{#                   fill="#969AA1">#}
+{#             </path>#}
+{#            </svg>#}
+{#           </span>#}
+{#           <span class="hidden dark:inline-block">#}
+{#            <svg fill="none" height="16" viewbox="0 0 16 16" width="16" xmlns="http://www.w3.org/2000/svg">#}
+{#             <path d="M14.3533 10.62C14.2466 10.44 13.9466 10.16 13.1999 10.2933C12.7866 10.3667 12.3666 10.4 11.9466 10.38C10.3933 10.3133 8.98659 9.6 8.00659 8.5C7.13993 7.53333 6.60659 6.27333 6.59993 4.91333C6.59993 4.15333 6.74659 3.42 7.04659 2.72666C7.33993 2.05333 7.13326 1.7 6.98659 1.55333C6.83326 1.4 6.47326 1.18666 5.76659 1.48C3.03993 2.62666 1.35326 5.36 1.55326 8.28666C1.75326 11.04 3.68659 13.3933 6.24659 14.28C6.85993 14.4933 7.50659 14.62 8.17326 14.6467C8.27993 14.6533 8.38659 14.66 8.49326 14.66C10.7266 14.66 12.8199 13.6067 14.1399 11.8133C14.5866 11.1933 14.4666 10.8 14.3533 10.62Z"#}
+{#                   fill="#969AA1">#}
+{#             </path>#}
+{#            </svg>#}
+{#           </span>#}
+{#          </span>#}
+{#                            </label>#}
+{#                            <!-- Dark Mode Toggler -->#}
+{#                        </li>#}
+{#                       <li>#}
+{#                           <button id="theme-toggle" data-tooltip-target="tooltip-toggle" type="button"#}
+{#                        class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 rounded-lg text-sm p-2.5">#}
+{#                    <svg id="theme-toggle-dark-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20"#}
+{#                         xmlns="http://www.w3.org/2000/svg">#}
+{#                        <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>#}
+{#                    </svg>#}
+{#                    <svg id="theme-toggle-light-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20"#}
+{#                         xmlns="http://www.w3.org/2000/svg">#}
+{#                        <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"#}
+{#                              fill-rule="evenodd" clip-rule="evenodd"></path>#}
+{#                    </svg>#}
+{#                </button>#}
+{#                <div id="tooltip-toggle" role="tooltip"#}
+{#                     class="absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-gray-900 rounded-lg shadow-sm opacity-0 tooltip">#}
+{#                    Toggle dark mode#}
+{#                    <div class="tooltip-arrow" data-popper-arrow></div>#}
+{#                </div>#}
+{#                       </li>#}
+{#                        <!-- Notification Menu Area -->#}
                     </ul>
                     <!-- User Area -->
                     <div @click.outside="dropdownOpen = false" class="relative" x-data="{ dropdownOpen: false }">
                         <a @click.prevent="dropdownOpen = ! dropdownOpen" class="flex items-center gap-4" href="#">
          <span class="hidden text-right lg:block">
-          <span class="block text-sm font-medium text-black dark:text-white">
+          <span class="block text-sm font-medium ">
            {{ user.username }}
           </span>
 
@@ -296,7 +334,9 @@
                     <!-- User Area -->
                 </div>
             </div>
+            
         </header>
+    
         <!-- ===== Header End ===== -->
         <!-- ===== Main Content Start ===== -->
         {% if messages %}
@@ -313,44 +353,45 @@
         {% endif %}
 
         <main class="flex items-center justify-center h-screen" id="main">
+  <div class="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10">
+    {% block content %}
+    <div class="flex flex-col items-center justify-center" @click.prevent="createNewChat()">
+      <a href="#"
+         class="flex flex-col items-center border border-gray-200 rounded-lg shadow md:flex-row md:max-w-3xl">
+        <img class="object-cover w-full rounded-t-lg h-96 md:h-auto md:w-72 md:rounded-none md:rounded-s-lg"
+             src="" alt="">
+        <div class="flex flex-col justify-between p-4 leading-normal">
+          <h5 class="mb-2 text-3xl font-bold tracking-tight">
+            Welcome to our chatbot
+          </h5>
+          <p class="mb-3 font-normal">
+            Harness the power of AI for a future where machines amplify human potential, solving problems we once thought insurmountable.
+          </p>
+        </div>
+      </a>
+    </div>
+    {% endblock %}
+  </div>
+</main>
 
 
-            <div class="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10">
-
-                {% block content %}
-                    <div class="flex flex-col items-center justify-center" @click.prevent="createNewChat()">
-                        <a href="#"
-                           class="flex flex-col items-center bg-white border border-gray-200 rounded-lg shadow md:flex-row md:max-w-3xl hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700">
-                            <img class="object-cover w-full rounded-t-lg h-96 md:h-auto md:w-72 md:rounded-none md:rounded-s-lg"
-                                 src="" alt="">
-                            <div class="flex flex-col justify-between p-4 leading-normal">
-                                <h5 class="mb-2 text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Welcome
-                                    to our chatbot</h5>
-                                <p class="mb-3 font-normal text-gray-700 dark:text-gray-400">Harness the power of AI for
-                                    a future where machines amplify human potential, solving problems we once thought
-                                    insurmountable.</p>
-                            </div>
-                        </a>
-                    </div>
-                {% endblock %}
-            </div>
-
-            <!-- Prompt Messages Container -->
 
 
-        </main>
 
-       <div id="pipeline-modal"
-     class="hidden fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50 dark:bg-opacity-80">
-    <div class="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg w-1/3 max-w-lg">
-        <h2 class="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">Select App</h2>
-        <p class="text-sm text-gray-700 dark:text-gray-300 mb-4">Select A topic</p>
-        <select id="pipeline-select" class="w-full rounded border p-2 mb-4 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100">
-            <!-- pipelines will be dynamically loaded here -->
+        <div id="pipeline-modal"
+     class="hidden fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50">
+    <div class="bg-white rounded-lg p-4 shadow-lg w-1/3 max-w-lg">
+        <h2 class="text-lg font-semibold mb-2 text-gray-900">Sélectionnez un sujet</h2>
+        <p class="text-sm text-gray-700 mb-4">Veuillez choisir un sujet dans la liste ci-dessous</p>
+        <select id="pipeline-select"
+                class="w-full rounded border p-2 mb-4">
+            <!-- Les sujets seront chargés dynamiquement ici -->
         </select>
         <div class="flex justify-end space-x-2">
-            <button id="cancel-pipeline" class="bg-gray-300 dark:bg-gray-600 text-gray-900 dark:text-gray-100 rounded p-2">Cancel</button>
-            <button id="confirm-pipeline" class="bg-blue-600 text-white rounded p-2">Confirm</button>
+            <button id="cancel-pipeline"
+                    class="bg-gray-300 text-gray-900 rounded p-2">Annuler
+            </button>
+            <button id="confirm-pipeline" class="bg-blue-600 text-white rounded p-2">Confirmer</button>
         </div>
     </div>
 </div>
@@ -359,7 +400,7 @@
 
         <!-- ===== Main Content End ===== -->
         <!-- ===== Page Wrapper End ===== -->
-    
+
         <script type="application/javascript">
             const chat_form_url = "{% url 'create_chat' %}";
             const avatar_url = "{% static profile.avatar.url %}"
@@ -377,9 +418,55 @@
                             pipelineSelect.appendChild(option);
                         });
                     })
-                    .catch(error => console.error('Error fetching pipelines:', error));
-            });
+                    .catch(error => console.error('Error fetching pipelines:', error))
+                
+            })
+
         </script>
+<script>
+    // On page load or when changing themes, best to add inline in `head` to avoid FOUC
+    var themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
+var themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
+
+// Change the icons inside the button based on previous settings
+if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    themeToggleLightIcon.classList.remove('hidden');
+} else {
+    themeToggleDarkIcon.classList.remove('hidden');
+}
+
+var themeToggleBtn = document.getElementById('theme-toggle');
+
+themeToggleBtn.addEventListener('click', function() {
+
+    // toggle icons inside button
+    themeToggleDarkIcon.classList.toggle('hidden');
+    themeToggleLightIcon.classList.toggle('hidden');
+
+    // if set via local storage previously
+    if (localStorage.getItem('color-theme')) {
+        if (localStorage.getItem('color-theme') === 'light') {
+            document.documentElement.classList.add('dark');
+            localStorage.setItem('color-theme', 'dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('color-theme', 'light');
+        }
+
+    // if NOT set via local storage previously
+    } else {
+        if (document.documentElement.classList.contains('dark')) {
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('color-theme', 'light');
+        } else {
+            document.documentElement.classList.add('dark');
+            localStorage.setItem('color-theme', 'dark');
+        }
+    }
+    
+});
+</script>
+
         <script defer="" src="{% static 'bundle.js' %}">
 
         </script>

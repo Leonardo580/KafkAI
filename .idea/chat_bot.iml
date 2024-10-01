@@ -35,6 +35,9 @@
     <orderEntry type="library" name="marked" level="application" />
     <orderEntry type="library" name="survey-knockout-ui" level="application" />
     <orderEntry type="library" name="survey-jquery" level="application" />
+    <orderEntry type="library" name="buttons" level="application" />
+    <orderEntry type="library" name="app.bundle" level="application" />
+    <orderEntry type="library" name="flowbite" level="application" />
   </component>
   <component name="TemplatesService">
     <option name="TEMPLATE_CONFIGURATION" value="Django" />

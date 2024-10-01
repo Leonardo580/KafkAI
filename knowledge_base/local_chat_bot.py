@@ -108,10 +108,10 @@ Fournissez la note binaire sous forme de JSON avec une seule clé 'score' sans p
         self.secondary_retriever = WeaviateVectorStore(self.weaviate_client,
                                                        "pipeline_chunks",
                                                        "content",
-                                                       embedding=self.embeddings_model)
+                                                       embedding=self.embeddings_model).as_retriever()
 
         self.history_aware_retriever = create_history_aware_retriever(
-            self.cohere_model, self.secondary_retriever.as_retriever(), contextualize_q_prompt
+            self.cohere_model, self.secondary_retriever, contextualize_q_prompt
         )
 
         self.rag_weaviate = self.weaviate_client.collections.get("knowledge_base")
@@ -124,10 +124,10 @@ Fournissez la note binaire sous forme de JSON avec une seule clé 'score' sans p
         self.hallucination_grader = hallucination_prompt | self.llm_model | StrOutputParser()
         self.answer_grader = answer_prompt | self.llm_model | StrOutputParser()
 
-
     def prompt(self, x):
         return ChatPromptTemplate.from_messages(
-            [HumanMessage(f"Donnez une réponse concise à la question sans faire référence à aucun historique de conversation.{x['question']} \nRéponse : ")]
+            [HumanMessage(
+                f"Donnez une réponse concise à la question sans faire référence à aucun historique de conversation.{x['question']} \nRéponse : ")]
         )
 
     def rag_prompt(self, x):
@@ -139,6 +139,7 @@ Fournissez la note binaire sous forme de JSON avec une seule clé 'score' sans p
                 )
             ]
         )
+
     def update_retriever(self, index_name, text_name, filters=None):
         self.secondary_retriever = WeaviateVectorStore(self.weaviate_client, index_name, text_name,
                                                        embedding=self.embeddings_model).as_retriever(
@@ -211,6 +212,7 @@ Fournissez la note binaire sous forme de JSON avec une seule clé 'score' sans p
         generation = self.llm_chain.invoke({"question": prompt})
         state["generation"] = generation
         return state
+
     def off_topic_response(self, state: AgentState):
         state["generation"] = self.llm_fallback(state)["generation"]
         return state
@@ -241,7 +243,7 @@ Fournissez la note binaire sous forme de JSON avec une seule clé 'score' sans p
         grader_llm = grade_prompt | structured_llm
         scores = []
         for doc in docs:
-            print("Document:--------------", doc)
+            # print("Document:--------------", doc)
             result = None
             while result is None:
                 result = await grader_llm.ainvoke({"document": doc, "question": question})
@@ -282,6 +284,7 @@ Fournissez la note binaire sous forme de JSON avec une seule clé 'score' sans p
         else:
             # If secondary retriever was already used, pass to LLM directly
             return "llm_fallback"
+
     def generate_answer(self, state: AgentState):
         llm = self.llm_model
         question = state["question"]
@@ -313,6 +316,7 @@ Fournissez la note binaire sous forme de JSON avec une seule clé 'score' sans p
         print("SECONDARY DOCUMENTS RETRIEVED:", secondary_documents)
         state["documents"] = [doc.page_content for doc in secondary_documents]
         state["retriever_used"] = "secondary"
+        print("Sec Docs --------------------------", state["documents"])
         return state
 
     async def build_pipeline_flow(self):
@@ -351,6 +355,15 @@ Fournissez la note binaire sous forme de JSON avec une seule clé 'score' sans p
         workflow.add_edge("llm_fallback", END)
 
         workflow.set_entry_point("topic_decision")
+        from IPython.display import Image, display
+        from langchain_core.runnables.graph import CurveStyle, MermaidDrawMethod, NodeStyles
+
+        # with open("architecture.png", "wb") as f:
+        #     f.write(Image(
+        #         workflow.compile().get_graph().draw_mermaid_png(
+        #             draw_method=MermaidDrawMethod.API,
+        #         )
+        #     ).data)
 
         return workflow.compile()
 

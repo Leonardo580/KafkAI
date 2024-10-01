@@ -18,7 +18,7 @@ from langchain.tools.retriever import create_retriever_tool
 from langchain_community.retrievers import TavilySearchAPIRetriever
 from langchain.schema import Document
 from typing import List, Optional, Tuple
-from langchain_core.pydantic_v1 import BaseModel, Field
+from langchain_core.pydantic_v1  import BaseModel, Field
 from langchain_core.messages import HumanMessage, AIMessage
 from pydantic import SecretStr
 from typing_extensions import TypedDict
@@ -515,7 +515,7 @@ class RAGRetriever(RAGPipeline):
         if config.llm_provider == 'cohere':
             self.llm_model = ChatCohere(model=config.model_name,
                                         **config.model_args,
-                                        cohere_api_key=config.model_api_key)
+                                        cohere_api_key=config.model_api_key, allow_reuse=True)
 
         elif config.llm_provider == 'anthropic':
             self.llm_model = anthropic.ChatAnthropic(model=config.model_name, **config.model_args
