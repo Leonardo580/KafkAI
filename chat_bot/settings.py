@@ -29,9 +29,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = ["192.168.1.29", "192.168.101.65", "localhost", "localhost:11434", "192.168.1.116"]
 
-# Application definition
-
 INSTALLED_APPS = [
+
     "daphne",
     'django.contrib.admin',
     'django.contrib.auth',
@@ -41,10 +40,12 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     "users.apps.UsersConfig",
     'django.contrib.sites',
+
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
+
     'channels',
     "chat.apps.ChatConfig",
     "knowledge_base.apps.BotKbConfig",
@@ -55,8 +56,10 @@ INSTALLED_APPS = [
     "django_select2",
     # 'langserve',
     'corsheaders',
+
     'flat_json_widget',
-    "encrypted_model_fields"
+    "encrypted_model_fields",
+    # "django-extensions",
 
     # "react",
     # "django_vite_plugin",
@@ -68,6 +71,8 @@ INSTALLED_APPS = [
     # 'django_email_verification',
 
 ]
+# Application definition
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -139,8 +144,6 @@ SOCIALACCOUNT_PROVIDERS = {
         }
     }
 }
-
-
 
 ROOT_URLCONF = 'chat_bot.urls'
 

@@ -73,37 +73,38 @@ class ChatConsumer(AsyncWebsocketConsumer):
             llm_message = {}
             pipeline_id = await sync_to_async(lambda: chat.pipeline.id)()
             steps = set()
-            async for chunk in llm_answer.astream_events(
-                    input={'question': message, "chat_history": chat_history}, config=config,
-                    version='v2'
-            ):
-                # Send updates for each node in the graph
-                if "metadata" in chunk and "langgraph_node" in chunk["metadata"]:
-                    node_name = chunk["metadata"]["langgraph_node"]
-                    if node_name not in steps:
-                        await self.send(text_data=json.dumps({
-                            'message': node_name,
-                            'sender': 'system',
-                            'type': 'progress'
-                        }))
-                    steps.add(node_name)
-                print(chunk)
-                if chunk["metadata"].get("langgraph_node") in ["llm_fallback", "generate"] and (chunk[
-                    "tags"] == ["seq:step:2", "seq:step:1"] or chunk["tags"] == ["seq:step:1", "seq:step:2"]):
+            with open(f"logs.json", "w") as f:
+                async for chunk in llm_answer.astream_events(
+                        input={'question': message, "chat_history": chat_history}, config=config,
+                        version='v2'
+                ):
+                    # Send updates for each node in the graph
+                    if "metadata" in chunk and "langgraph_node" in chunk["metadata"]:
+                        node_name = chunk["metadata"]["langgraph_node"]
+                        if node_name not in steps:
+                            await self.send(text_data=json.dumps({
+                                'message': node_name,
+                                'sender': 'system',
+                                'type': 'progress'
+                            }))
+                        steps.add(node_name)
+                    print(chunk)
+                    if chunk["metadata"].get("langgraph_node") in ["llm_fallback", "generate"] and (chunk[
+                        "tags"] == ["seq:step:2", "seq:step:1"] or chunk["tags"] == ["seq:step:1", "seq:step:2"] or chunk["tags"] == ["seq:step:1"] or chunk["tags"] == ["seq:step:2"]):
 
-                    if chunk["event"] in ["on_chat_model_stream", "on_chat_model_start"]:
-                        msg = chunk["data"].get("chunk", "")
-                        msg = msg.content if not isinstance(msg, str) else msg
-                        # print(msg)
-                        await self.send(text_data=json.dumps({
-                            'message': msg,
-                            'sender': 'llm',
-                            'event': chunk["event"]
-                        }))
+                        if chunk["event"] in ["on_chat_model_stream", "on_chat_model_start"]:
+                            msg = chunk["data"].get("chunk", "")
+                            msg = msg.content if not isinstance(msg, str) else msg
+                            # print(msg)
+                            await self.send(text_data=json.dumps({
+                                'message': msg,
+                                'sender': 'llm',
+                                'event': chunk["event"]
+                            }))
 
-                # Save the chunk to the file
-                # f.write(dumps(chunk) + "\n")
-                llm_message = chunk
+                    # Save the chunk to the file
+                    f.write(dumps(chunk) + "\n")
+                    llm_message = chunk
             # Send final answer
             final_answer = find_key(llm_message, "generation")
             await self.send(text_data=json.dumps({
@@ -151,8 +152,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 # print("2----", chunk["tags"], chunk["tags"] == ['seq:step:1', 'seq:step:2'])
 
                 if chunk["metadata"].get("langgraph_node") in ["off_topic_response", "generate_answer", "llm_fallback"] and (chunk[
-                    "tags"] == ["seq:step:1", "seq:step:2"] or chunk["tags"] == ["seq:step:2", "seq:step:1"]) or\
-                    chunk["tags"] ==  ["seq:step:2"]:
+                    "tags"] == ["seq:step:1", "seq:step:2"] or chunk["tags"] == ["seq:step:2", "seq:step:1"] \
+                     or chunk["tags"] ==  ["seq:step:2"]):
                     if chunk["event"] in ["on_chat_model_stream", "on_chat_model_start"]:
                         msg = chunk["data"].get("chunk", "")
                         msg = msg.content if not isinstance(msg, str) else msg
@@ -163,6 +164,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         }))
 
                 llm_message = chunk
+                # f.write(dumps(chunk) + "\n")
 
             # Send final answer
             final_answer = find_key(llm_message, "generation")
