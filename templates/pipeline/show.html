@@ -126,9 +126,9 @@
                  style="background: linear-gradient(to right, rgba(0,0,0,0.9), rgba(0,0,0,0.8));"></div>
             <div class="flex flex-col justify-between p-4 leading-normal w-full relative z-10">
                 <div>
-                    <h5 class="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">{{ pipeline.name }}</h5>
-                    <p class="mb-3 font-normal text-gray-700 dark:text-gray-400">{{ pipeline.description }}</p>
-                    <p class="mb-3 font-normal text-gray-700 dark:text-gray-400">
+                    <h5 class="mb-2 text-2xl font-bold tracking-tight text-white dark:text-white">{{ pipeline.name }}</h5>
+                    <p class="mb-3 font-normal text-white dark:text-gray-400">{{ pipeline.description }}</p>
+                    <p class="mb-3 font-normal text-white dark:text-gray-400">
                         Status:
                         {% if pipeline.is_active %}
                             <span id="status-{{ pipeline.pk }}" class="text-green-600 dark:text-green-400">Active</span>

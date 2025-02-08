@@ -90,17 +90,17 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         steps.add(node_name)
                     print(chunk)
                     if chunk["metadata"].get("langgraph_node") in ["llm_fallback", "generate"] and (chunk[
-                        "tags"] == ["seq:step:2", "seq:step:1"] or chunk["tags"] == ["seq:step:1", "seq:step:2"] or chunk["tags"] == ["seq:step:1"] or chunk["tags"] == ["seq:step:2"]):
+                        "tags"] == ["seq:step:2", "seq:step:1"] or chunk["tags"] == ["seq:step:1", "seq:step:2"] or chunk["tags"] == ["seq:step:2"]):
 
                         if chunk["event"] in ["on_chat_model_stream", "on_chat_model_start"]:
                             msg = chunk["data"].get("chunk", "")
                             msg = msg.content if not isinstance(msg, str) else msg
-                            # print(msg)
-                            await self.send(text_data=json.dumps({
-                                'message': msg,
-                                'sender': 'llm',
-                                'event': chunk["event"]
-                            }))
+                            if len(chunk["parent_ids"])<= 3:
+                                await self.send(text_data=json.dumps({
+                                    'message': msg,
+                                    'sender': 'llm',
+                                    'event': chunk["event"]
+                                }))
 
                     # Save the chunk to the file
                     f.write(dumps(chunk) + "\n")

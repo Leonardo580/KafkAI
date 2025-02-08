@@ -59,7 +59,7 @@ INSTALLED_APPS = [
 
     'flat_json_widget',
     "encrypted_model_fields",
-    # "django-extensions",
+    "django_extensions",
 
     # "react",
     # "django_vite_plugin",
@@ -93,6 +93,11 @@ DJANGO_VITE = {
         "dev_mode": True,
 
     }
+}
+
+GRAPH_MODELS = {
+  # 'all_applications': True,
+  'group_models': ["chat"],
 }
 
 REACT = {
